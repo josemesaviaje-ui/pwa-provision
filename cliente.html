@@ -5,42 +5,27 @@
   <title>Cliente</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- ESTILOS -->
+  <!-- CSS PRINCIPAL DE LA APP -->
   <link rel="stylesheet" href="main.css">
 </head>
 
 <body>
 
-<!-- HEADER -->
-<header class="app-header">
+<header class="app-header gradient">
   <h1>Cliente</h1>
 </header>
 
-<main class="container">
+<main class="app-container">
 
   <!-- ================= DATOS CLIENTE ================= -->
   <section class="card">
     <h3>Datos del cliente</h3>
 
-    <input
-      type="text"
-      id="clienteCodigo"
-      placeholder="Código de cliente"
-    >
+    <input id="clienteCodigo" type="text" placeholder="Código de cliente">
+    <input id="clienteNombre" type="text" placeholder="Nombre del cliente">
+    <input id="clienteDireccion" type="text" placeholder="Dirección">
 
-    <input
-      type="text"
-      id="clienteNombre"
-      placeholder="Nombre del cliente"
-    >
-
-    <input
-      type="text"
-      id="clienteDireccion"
-      placeholder="Dirección"
-    >
-
-    <button onclick="guardarDatosCliente()">
+    <button class="btn-primary" onclick="guardarDatosCliente()">
       Guardar datos
     </button>
   </section>
@@ -49,25 +34,11 @@
   <section class="card">
     <h3>Nueva condición</h3>
 
-    <input
-      type="number"
-      id="porcentaje"
-      placeholder="% provisión"
-      min="0"
-      step="0.01"
-    >
+    <input id="porcentaje" type="number" step="0.01" placeholder="% provisión">
+    <input id="fechaInicio" type="date">
+    <input id="fechaFin" type="date">
 
-    <input
-      type="date"
-      id="fechaInicio"
-    >
-
-    <input
-      type="date"
-      id="fechaFin"
-    >
-
-    <button onclick="crearCondicion()">
+    <button class="btn-primary" onclick="crearCondicion()">
       Añadir condición
     </button>
   </section>
@@ -82,25 +53,11 @@
   <section class="card">
     <h3>Nueva compra</h3>
 
-    <input
-      type="text"
-      id="conceptoCompra"
-      placeholder="Concepto / factura"
-    >
+    <input id="conceptoCompra" type="text" placeholder="Concepto / factura">
+    <input id="importeCompra" type="number" step="0.01" placeholder="Importe">
+    <input id="fechaCompra" type="date">
 
-    <input
-      type="number"
-      id="importeCompra"
-      placeholder="Importe"
-      step="0.01"
-    >
-
-    <input
-      type="date"
-      id="fechaCompra"
-    >
-
-    <button onclick="crearCompra()">
+    <button class="btn-primary" onclick="crearCompra()">
       Añadir compra
     </button>
   </section>
@@ -109,25 +66,11 @@
   <section class="card">
     <h3>Nuevo cargo</h3>
 
-    <input
-      type="text"
-      id="conceptoCargo"
-      placeholder="Concepto"
-    >
+    <input id="conceptoCargo" type="text" placeholder="Concepto">
+    <input id="importeCargo" type="number" step="0.01" placeholder="Importe">
+    <input id="fechaCargo" type="date">
 
-    <input
-      type="number"
-      id="importeCargo"
-      placeholder="Importe"
-      step="0.01"
-    >
-
-    <input
-      type="date"
-      id="fechaCargo"
-    >
-
-    <button onclick="crearCargo()">
+    <button class="btn-danger" onclick="crearCargo()">
       Añadir cargo
     </button>
   </section>
@@ -135,7 +78,7 @@
   <!-- ================= SALDO ================= -->
   <section class="card">
     <h3>Saldo provisión</h3>
-    <div id="saldoCliente" class="saldo">0.00 €</div>
+    <div id="saldoCliente" class="saldo">0,00 €</div>
   </section>
 
   <!-- ================= MOVIMIENTOS ================= -->
@@ -157,17 +100,14 @@
 
 </main>
 
-<!-- ================= SCRIPTS (ORDEN CRÍTICO) ================= -->
-
+<!-- ================= SCRIPTS (MISMO ORDEN QUE EL RESTO DE LA APP) ================= -->
 <script src="js/storage.js"></script>
 <script src="js/toast.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 
-<!-- Chart.js (OBLIGATORIO PARA GRÁFICOS) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<!-- LÓGICA CLIENTE -->
 <script src="js/condiciones.js"></script>
 
 </body>
