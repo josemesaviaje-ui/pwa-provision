@@ -2,114 +2,72 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Cliente · Provisiones</title>
-
+  <title>Cliente</title>
   <link rel="stylesheet" href="css/main.css">
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
 
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#5fa8d3">
+  <!-- Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 </head>
 
-<body data-page="clientes">
+<body>
 
 <header class="app-header">
-  <div class="brand">
-    <img src="assets/logo.png" alt="Logo">
-    <div>
-      <strong>Provisiones</strong>
-      <small>Gestión profesional de provisiones</small>
-    </div>
-  </div>
-  <button id="themeToggle">🌙</button>
+  <h1>Cliente</h1>
 </header>
 
-<div class="container">
+<main class="container">
 
-  <!-- DATOS DEL CLIENTE -->
-  <div class="card">
-    <h3>Datos del cliente</h3>
+  <!-- INFO CLIENTE -->
+  <section class="card" id="clienteInfo"></section>
 
-    <label>Código</label>
-    <input type="text" id="clienteCodigo" placeholder="Código único">
-
-    <label>Nombre</label>
-    <input type="text" id="clienteNombre" placeholder="Nombre del cliente">
-
-    <label>Dirección</label>
-    <input type="text" id="clienteDireccion" placeholder="Dirección">
-
-    <button class="btn-primary" onclick="guardarDatosCliente()">
-      Guardar cambios
-    </button>
-  </div>
-
-  <!-- CONDICIONES -->
-  <div class="card">
+  <!-- ================= CONDICIONES ================= -->
+  <section class="card">
     <h3>Nueva condición</h3>
-    <input type="number" id="porcentaje" placeholder="% provisión">
-    <input type="date" id="fechaInicio">
-    <input type="date" id="fechaFin">
-    <button class="btn-primary" onclick="crearCondicion()">Añadir condición</button>
-  </div>
+    <input type="number" id="condPorcentaje" placeholder="% provisión">
+    <input type="date" id="condInicio">
+    <input type="date" id="condFin">
+    <button class="btn" onclick="crearCondicion()">Añadir condición</button>
+  </section>
 
-  <div class="card">
+  <section class="card">
     <h3>Condiciones</h3>
     <div id="listaCondiciones"></div>
-  </div>
+  </section>
 
-  <!-- COMPRAS -->
-  <div class="card">
+  <!-- ================= NUEVA COMPRA ================= -->
+  <section class="card">
     <h3>Nueva compra</h3>
-    <input type="text" id="conceptoCompra" placeholder="Concepto / factura">
-    <input type="number" id="importeCompra" placeholder="Importe">
-    <input type="date" id="fechaCompra">
-    <button class="btn-primary" onclick="crearCompra()">Añadir compra</button>
-  </div>
+    <input id="conceptoCompra" placeholder="Concepto / factura">
+    <input id="importeCompra" placeholder="Importe">
+    <select id="tipoCompra">
+      <option value="compra">Compra</option>
+      <option value="cargo">Cargo</option>
+      <option value="promocion">Promoción</option>
+    </select>
+    <button class="btn" onclick="crearMovimiento()">Añadir</button>
+  </section>
 
-  <!-- CARGOS -->
-  <div class="card">
-    <h3>Nuevo cargo</h3>
-    <input type="text" id="conceptoCargo" placeholder="Concepto">
-    <input type="number" id="importeCargo" placeholder="Importe">
-    <input type="date" id="fechaCargo">
-    <button class="btn-danger" onclick="crearCargo()">Añadir cargo</button>
-  </div>
+  <!-- ================= IMPORTAR EXCEL ================= -->
+  <section class="card">
+    <h3>Importar datos desde Excel</h3>
 
-  <!-- SALDO -->
-  <div class="card">
-    <h3>Saldo provisión</h3>
-    <h2 id="saldoCliente">0 €</h2>
-  </div>
+    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
 
-  <!-- MOVIMIENTOS -->
-  <div class="card">
-    <h3>Movimientos</h3>
-    <div id="listaMovimientos"></div>
-  </div>
+    <div style="margin-top:10px;">
+      <button class="btn" id="btnPreview">Vista previa</button>
+      <button class="btn secondary" id="btnTemplate">Descargar plantilla</button>
+      <button class="btn success" id="btnImport" disabled>Importar válidos</button>
+    </div>
 
-</div>
+    <div id="excelPreview" style="margin-top:15px; overflow:auto;"></div>
+  </section>
 
-<!-- NAV -->
-<nav class="bottom-nav">
-  <a href="index.html">
-    <span class="material-icons-outlined">dashboard</span>
-    <small>Dashboard</small>
-  </a>
-  <a href="clientes.html">
-    <span class="material-icons-outlined">groups</span>
-    <small>Clientes</small>
-  </a>
-  <a href="informes.html">
-    <span class="material-icons-outlined">description</span>
-    <small>Informes</small>
-  </a>
-</nav>
+</main>
 
 <!-- SCRIPTS -->
 <script src="js/storage.js"></script>
-<script type="module" src="js/cloud.js"></script>
 <script src="js/condiciones.js"></script>
+<script src="js/import-excel.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
