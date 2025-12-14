@@ -3,32 +3,76 @@
 <head>
   <meta charset="UTF-8">
   <title>Cliente</title>
-  <link rel="stylesheet" href="css/main.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Excel -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <!-- ESTILOS -->
+  <link rel="stylesheet" href="main.css">
 </head>
 
 <body>
 
+<!-- HEADER -->
 <header class="app-header">
   <h1>Cliente</h1>
 </header>
 
 <main class="container">
 
-  <!-- INFO CLIENTE -->
-  <section class="card" id="clienteInfo"></section>
-
-  <!-- ================= CONDICIONES ================= -->
+  <!-- ================= DATOS CLIENTE ================= -->
   <section class="card">
-    <h3>Nueva condición</h3>
-    <input type="number" id="condPorcentaje" placeholder="% provisión">
-    <input type="date" id="condInicio">
-    <input type="date" id="condFin">
-    <button class="btn" onclick="crearCondicion()">Añadir condición</button>
+    <h3>Datos del cliente</h3>
+
+    <input
+      type="text"
+      id="clienteCodigo"
+      placeholder="Código de cliente"
+    >
+
+    <input
+      type="text"
+      id="clienteNombre"
+      placeholder="Nombre del cliente"
+    >
+
+    <input
+      type="text"
+      id="clienteDireccion"
+      placeholder="Dirección"
+    >
+
+    <button onclick="guardarDatosCliente()">
+      Guardar datos
+    </button>
   </section>
 
+  <!-- ================= NUEVA CONDICIÓN ================= -->
+  <section class="card">
+    <h3>Nueva condición</h3>
+
+    <input
+      type="number"
+      id="porcentaje"
+      placeholder="% provisión"
+      min="0"
+      step="0.01"
+    >
+
+    <input
+      type="date"
+      id="fechaInicio"
+    >
+
+    <input
+      type="date"
+      id="fechaFin"
+    >
+
+    <button onclick="crearCondicion()">
+      Añadir condición
+    </button>
+  </section>
+
+  <!-- ================= CONDICIONES ================= -->
   <section class="card">
     <h3>Condiciones</h3>
     <div id="listaCondiciones"></div>
@@ -37,40 +81,94 @@
   <!-- ================= NUEVA COMPRA ================= -->
   <section class="card">
     <h3>Nueva compra</h3>
-    <input id="conceptoCompra" placeholder="Concepto / factura">
-    <input id="importeCompra" placeholder="Importe">
-    <select id="tipoCompra">
-      <option value="compra">Compra</option>
-      <option value="cargo">Cargo</option>
-      <option value="promocion">Promoción</option>
-    </select>
-    <button class="btn" onclick="crearMovimiento()">Añadir</button>
+
+    <input
+      type="text"
+      id="conceptoCompra"
+      placeholder="Concepto / factura"
+    >
+
+    <input
+      type="number"
+      id="importeCompra"
+      placeholder="Importe"
+      step="0.01"
+    >
+
+    <input
+      type="date"
+      id="fechaCompra"
+    >
+
+    <button onclick="crearCompra()">
+      Añadir compra
+    </button>
   </section>
 
-  <!-- ================= IMPORTAR EXCEL ================= -->
+  <!-- ================= NUEVO CARGO ================= -->
   <section class="card">
-    <h3>Importar datos desde Excel</h3>
+    <h3>Nuevo cargo</h3>
 
-    <input type="file" id="excelFile" accept=".xlsx,.xls,.csv">
+    <input
+      type="text"
+      id="conceptoCargo"
+      placeholder="Concepto"
+    >
 
-    <div style="margin-top:10px;">
-      <button class="btn" id="btnPreview">Vista previa</button>
-      <button class="btn secondary" id="btnTemplate">Descargar plantilla</button>
-      <button class="btn success" id="btnImport" disabled>Importar válidos</button>
-    </div>
+    <input
+      type="number"
+      id="importeCargo"
+      placeholder="Importe"
+      step="0.01"
+    >
 
-    <div id="excelPreview" style="margin-top:15px; overflow:auto;"></div>
+    <input
+      type="date"
+      id="fechaCargo"
+    >
+
+    <button onclick="crearCargo()">
+      Añadir cargo
+    </button>
+  </section>
+
+  <!-- ================= SALDO ================= -->
+  <section class="card">
+    <h3>Saldo provisión</h3>
+    <div id="saldoCliente" class="saldo">0.00 €</div>
+  </section>
+
+  <!-- ================= MOVIMIENTOS ================= -->
+  <section class="card">
+    <h3>Movimientos</h3>
+    <div id="listaMovimientos"></div>
+  </section>
+
+  <!-- ================= GRÁFICOS ================= -->
+  <section class="card">
+    <h3>Evolución</h3>
+    <canvas id="graficoEvolucionCliente"></canvas>
+  </section>
+
+  <section class="card">
+    <h3>Tipos</h3>
+    <canvas id="graficoTiposCliente"></canvas>
   </section>
 
 </main>
 
-<!-- SCRIPTS -->
+<!-- ================= SCRIPTS (ORDEN CRÍTICO) ================= -->
+
 <script src="js/storage.js"></script>
-<script src="js/condiciones.js"></script>
-<script src="js/import-excel.js"></script>
+<script src="js/toast.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
-<script src="js/toast.js"></script>
+
+<!-- Chart.js (OBLIGATORIO PARA GRÁFICOS) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- LÓGICA CLIENTE -->
+<script src="js/condiciones.js"></script>
 
 </body>
 </html>
