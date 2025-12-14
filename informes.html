@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#8ecae6">
+  <meta charset="UTF-8">
+  <title>Informes</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body data-page="informes">
+
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo.png" alt="Logo">
+    <div>
+      <strong>Provisiones</strong>
+      <small>Gestión profesional de provisiones</small>
+    </div>
+  </div>
+
+  <button id="themeToggle">🌙</button>
+</header>
+
+<div class="container">
+
+  <!-- FILTROS -->
+<div class="card">
+  <h3>Filtros del informe</h3>
+
+  <label>Cliente</label>
+  <select id="clienteFiltro">
+    <option value="all">Todos los clientes</option>
+  </select>
+
+  <label>Fecha desde</label>
+  <input type="date" id="fechaDesde">
+
+  <label>Fecha hasta</label>
+  <input type="date" id="fechaHasta">
+
+  <button class="btn-primary" onclick="generarInforme()">
+    Generar informe
+  </button>
+
+  <button onclick="exportarExcel()">
+    Exportar Excel
+  </button>
+
+  <button onclick="exportarPDF()">
+    Exportar PDF
+  </button>
+</div>
+
+<div class="card">
+  <strong>Filtros rápidos</strong><br><br>
+  <button onclick="setPeriodo(7)">Últimos 7 días</button>
+  <button onclick="setPeriodo(30)">Últimos 30 días</button>
+  <button onclick="setPeriodo(90)">Últimos 90 días</button>
+</div>
+
+  <!-- RESULTADO -->
+  <div class="card">
+    <h3>Resultado</h3>
+    <div id="resultadoInforme"></div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.29/dist/jspdf.plugin.autotable.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/informes.js"></script>
+<script src="js/exportExcel.js"></script>
+
+<nav class="bottom-nav">
+  <a href="index.html" data-page="dashboard">
+    <span class="material-icons-outlined">dashboard</span>
+    <small>Dashboard</small>
+  </a>
+
+  <a href="clientes.html" data-page="clientes">
+    <span class="material-icons-outlined">groups</span>
+    <small>Clientes</small>
+  </a>
+
+  <a href="informes.html" data-page="informes">
+    <span class="material-icons-outlined">description</span>
+    <small>Informes</small>
+  </a>
+</nav>
+
+<script src="js/storage.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script src="js/informes.js"></script>
+<script src="js/exportExcel.js"></script>
+<script src="js/exportPdf.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/toast.js"></script>
+
+</body>
+</html>

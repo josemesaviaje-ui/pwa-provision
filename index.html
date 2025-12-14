@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Dashboard · Provisiones</title>
+
+  <!-- ESTILOS -->
+  <link rel="stylesheet" href="css/main.css">
+
+  <!-- CHARTS -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#5fa8d3">
+</head>
+<body data-page="dashboard">
+
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo.png" alt="Logo">
+    <div>
+      <strong>Provisiones</strong>
+      <small>Gestión profesional de provisiones</small>
+    </div>
+  </div>
+
+  <button id="themeToggle">🌙</button>
+</header>
+
+<div class="container">
+
+  <!-- ================= RESUMEN ================= -->
+  <div class="grid">
+    <div class="card">
+      <h3>💰 Saldo total</h3>
+      <h2 id="saldoTotal">0 €</h2>
+    </div>
+
+    <div class="card">
+      <h3>👥 Clientes</h3>
+      <h2 id="totalClientes">0</h2>
+    </div>
+
+    <div class="card">
+      <h3>➕ Provisión generada</h3>
+      <h2 id="totalGenerado">0 €</h2>
+    </div>
+
+    <div class="card">
+      <h3>➖ Provisión consumida</h3>
+      <h2 id="totalConsumido">0 €</h2>
+    </div>
+  </div>
+
+  <!-- ================= GRÁFICOS ================= -->
+  <div class="grid" style="margin-top:20px">
+    <div class="card">
+      <h3>Provisión por cliente</h3>
+      <canvas id="graficoClientes"></canvas>
+    </div>
+
+    <div class="card">
+      <h3>Compras vs Cargos</h3>
+      <canvas id="graficoMovimientos"></canvas>
+    </div>
+  </div>
+
+  <!-- ================= ALERTAS ================= -->
+  <div class="card" style="margin-top:20px">
+    <h3>⚠️ Condiciones próximas a caducar</h3>
+    <div id="alertasCondiciones"></div>
+  </div>
+
+</div>
+
+<!-- SCRIPTS -->
+<script src="js/storage.js"></script>
+<script src="js/dashboard.js"></script>
+
+<!-- SERVICE WORKER -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
+<nav class="bottom-nav">
+  <a href="index.html" data-page="dashboard">
+    <span class="material-icons-outlined">dashboard</span>
+    <small>Dashboard</small>
+  </a>
+
+  <a href="clientes.html" data-page="clientes">
+    <span class="material-icons-outlined">groups</span>
+    <small>Clientes</small>
+  </a>
+
+  <a href="informes.html" data-page="informes">
+    <span class="material-icons-outlined">description</span>
+    <small>Informes</small>
+  </a>
+</nav>
+
+<script src="js/storage.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/toast.js"></script>
+
+</body>
+</html>

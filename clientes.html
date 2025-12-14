@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Clientes · Provisiones</title>
+
+  <link rel="stylesheet" href="css/main.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#5fa8d3">
+</head>
+
+<body data-page="clientes">
+
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo.png" alt="Logo">
+    <div>
+      <strong>Provisiones</strong>
+      <small>Gestión profesional de provisiones</small>
+    </div>
+  </div>
+
+  <button id="themeToggle">🌙</button>
+</header>
+
+<div class="container">
+
+  <!-- NUEVO CLIENTE -->
+  <div class="card">
+    <h3>Nuevo cliente</h3>
+
+    <input
+      type="text"
+      id="codigoCliente"
+      placeholder="Código de cliente (único)"
+    >
+
+    <input
+      type="text"
+      id="nombreCliente"
+      placeholder="Nombre del cliente"
+    >
+
+    <input
+      type="text"
+      id="direccionCliente"
+      placeholder="Dirección (opcional)"
+    >
+
+    <button class="btn-primary" onclick="crearCliente()">
+      Añadir cliente
+    </button>
+  </div>
+
+  <!-- LISTADO -->
+  <div class="card">
+    <h3>Clientes</h3>
+
+    <input
+      type="text"
+      id="buscarCliente"
+      placeholder="Buscar por nombre o código..."
+      oninput="renderClientes()"
+    >
+
+    <div id="listaClientes"></div>
+  </div>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <a href="index.html" data-page="dashboard">
+    <span class="material-icons-outlined">dashboard</span>
+    <small>Dashboard</small>
+  </a>
+
+  <a href="clientes.html" data-page="clientes">
+    <span class="material-icons-outlined">groups</span>
+    <small>Clientes</small>
+  </a>
+
+  <a href="informes.html" data-page="informes">
+    <span class="material-icons-outlined">description</span>
+    <small>Informes</small>
+  </a>
+</nav>
+
+<!-- SCRIPTS -->
+<script src="js/storage.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script src="js/clientes.js"></script>
+<script src="js/navigation.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/toast.js"></script>
+
+</body>
+</html>
