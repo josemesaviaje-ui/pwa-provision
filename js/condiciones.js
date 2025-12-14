@@ -92,12 +92,12 @@ function guardarDatosCliente() {
 ===================================================== */
 
 function crearCondicion() {
-  const porcentaje = Number(porcentajeInput.value);
-  const inicio = fechaInicio.value;
-  const fin = fechaFin.value;
+  const porcentaje = Number(document.getElementById("porcentaje").value);
+  const inicio = document.getElementById("fechaInicio").value;
+  const fin = document.getElementById("fechaFin").value;
 
   if (!porcentaje || porcentaje <= 0 || !inicio || !fin) {
-    showToast("Datos incorrectos");
+    showToast("Datos de condición incorrectos");
     return;
   }
 
@@ -114,16 +114,18 @@ function crearCondicion() {
   };
 
   if (haySolapamiento(nueva)) {
-    showToast("La condición se solapa con otra");
+    showToast("La condición se solapa con otra existente");
     return;
   }
 
-  const c = getCliente();
-  c.condiciones.push(nueva);
-  saveCliente(c);
+  const cliente = getCliente();
+  cliente.condiciones = cliente.condiciones || [];
+  cliente.condiciones.push(nueva);
+
+  saveCliente(cliente);
   limpiarInputs();
   render();
-  showToast("Condición añadida");
+  showToast("Condición añadida correctamente");
 }
 
 function estadoCondicion(c) {
