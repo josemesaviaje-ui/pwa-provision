@@ -34,3 +34,15 @@ export async function migrarDatosAntiguos() {
     alert("Datos migrados a la nube. Ahora se sincronizarán en todos tus dispositivos.");
   }
 }
+
+// BOTÓN TEMPORAL - QUITAR DESPUÉS
+window.forzarMigracion = async function() {
+  if (!confirm("¿Subir todos tus datos antiguos a la nube ahora?\n\nEsto sincronizará todo con tu cuenta.")) {
+    return;
+  }
+
+  // Forzar borrando la marca de migrado
+  localStorage.removeItem('datosMigrados');
+
+  await migrarDatosAntiguos();
+}
