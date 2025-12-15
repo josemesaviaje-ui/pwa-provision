@@ -1,40 +1,43 @@
-// js/migration.js - Solo botón manual simple
+// js/migration.js - Versión super simple con alerts
 
 import { agregar } from './firestore.js';
 
-// BOTÓN MANUAL PARA SUBIR DATOS
 window.subirDatosALaNube = async function() {
-  if (!confirm("¿Subir TODOS tus datos actuales a la nube ahora?\n\nDespués podrás verlos en cualquier móvil o tablet con tu misma cuenta.")) {
+  alert("Botón pulsado. Empezando...");
+
+  const datos = localStorage.getItem('pwa_provisiones_data');
+
+  if (!datos) {
+    alert("No hay datos locales para subir. Nada que hacer.");
     return;
   }
 
-  const datosAntiguos = localStorage.getItem('pwa_provisiones_data');
-
-  if (!datosAntiguos) {
-    alert("No hay datos en la app para subir. Nada que hacer.");
-    return;
-  }
-
-  alert("Subiendo datos a la nube... Espera unos segundos (no cierres la app).");
+  alert("Datos encontrados. Subiendo a la nube... (puede tardar 10-30 segundos)");
 
   try {
-    const data = JSON.parse(datosAntiguos);
+    const parseados = JSON.parse(datos);
 
-    for (const clienteAntiguo of data.clientes) {
-      // Crear cliente nuevo en la nube
-      const clienteRef = await agregar('clientes', {
-        codigo: clienteAntiguo.codigo || '',
-        nombre: clienteAntiguo.nombre || '',
-        direccion: clienteAntiguo.direccion || ''
+    if (!parseados.clientes || parseados.clientes.length === 0) {
+      alert("No hay clientes para subir.");
+      return;
+    }
+
+    alert(`Subiendo ${parseados.clientes.length} clientes...`);
+
+    for (const clienteViejo of parseados.clientes) {
+      const refCliente = await agregar('clientes', {
+        codigo: clienteViejo.codigo || '',
+        nombre: clienteViejo.nombre || '',
+        direccion: clienteViejo.direccion || ''
       });
 
-      const nuevoId = clienteRef.id;
+      const idNuevo = refCliente.id;
 
-      // Subir condiciones
-      if (clienteAntiguo.condiciones) {
-        for (const c of clienteAntiguo.condiciones) {
+      // Condiciones
+      if (clienteViejo.condiciones && clienteViejo.condiciones.length > 0) {
+        for (const c of clienteViejo.condiciones) {
           await agregar('condiciones', {
-            clienteId: nuevoId,
+            clienteId: idNuevo,
             porcentaje: c.porcentaje,
             fechaInicio: c.fechaInicio,
             fechaFin: c.fechaFin
@@ -42,11 +45,11 @@ window.subirDatosALaNube = async function() {
         }
       }
 
-      // Subir movimientos (compras y cargos)
-      if (clienteAntiguo.movimientos) {
-        for (const m of clienteAntiguo.movimientos) {
+      // Movimientos
+      if (clienteViejo.movimientos && clienteViejo.movimientos.length > 0) {
+        for (const m of clienteViejo.movimientos) {
           await agregar('movimientos', {
-            clienteId: nuevoId,
+            clienteId: idNuevo,
             tipo: m.tipo,
             concepto: m.concepto,
             importe: m.importe,
@@ -58,9 +61,9 @@ window.subirDatosALaNube = async function() {
       }
     }
 
-    alert("¡TODO SUBIDO A LA NUBE! 🎉\n\nAhora recarga la app en el móvil con tu misma cuenta y verás todos los datos.\n\nPuedes borrar este botón cuando quieras.");
+    alert("¡ÉXITO TOTAL! 🎉\n\nTodos tus datos están ahora en la nube.\n\nRecarga la app en el móvil con tu misma cuenta y los verás.");
 
-  } catch (error) {
-    alert("Error al subir los datos: " + error.message + "\n\nAsegúrate de tener internet e inténtalo de nuevo.");
+  } catch (err) {
+    alert("ERROR: " + err.message + "\n\nAsegúrate de tener internet bueno e inténtalo de nuevo.");
   }
 };

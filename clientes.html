@@ -104,13 +104,19 @@
 
 <!-- ==================== PROTECCIÓN Y LOGOUT ==================== -->
 <script type="module">
-  import { protegerPagina, cerrarSesion } from './js/auth.js';
+  import { protegerPagina } from './js/auth.js';
+  import { cerrarSesion } from './js/auth.js';
 
-  // Si no está logueado → redirige a login.html
+  // Proteger la página (redirige a login si no hay usuario)
   protegerPagina();
 
-  // Botón de cerrar sesión
-  document.getElementById('btnLogout')?.addEventListener('click', cerrarSesion);
+  // Asociar el botón de logout cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) {
+      btnLogout.addEventListener('click', cerrarSesion);
+    }
+  });
 </script>
 <!-- ============================================================= -->
 

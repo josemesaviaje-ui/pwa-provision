@@ -125,19 +125,21 @@
   }
 </script>
 
-<!-- ==================== PROTECCIÓN, MIGRACIÓN Y LOGOUT ==================== -->
+<!-- ==================== PROTECCIÓN Y LOGOUT ==================== -->
 <script type="module">
-  import { protegerPagina, cerrarSesion } from './js/auth.js';
-  import { migrarDatosAntiguos } from './js/migration.js';
+  import { protegerPagina } from './js/auth.js';
+  import { cerrarSesion } from './js/auth.js';
 
-  // Proteger la página y, una vez logueado, ejecutar la migración (solo si hay datos antiguos)
-  protegerPagina(async () => {
-    await migrarDatosAntiguos();
-    // Aquí puedes añadir más cosas que quieras hacer después del login, como cargar dashboard, etc.
+  // Proteger la página (redirige a login si no hay usuario)
+  protegerPagina();
+
+  // Asociar el botón de logout cuando el DOM esté listo
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) {
+      btnLogout.addEventListener('click', cerrarSesion);
+    }
   });
-
-  // Botón de cerrar sesión
-  document.getElementById('btnLogout')?.addEventListener('click', cerrarSesion);
 </script>
 <!-- ============================================================= -->
 
