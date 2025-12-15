@@ -2,113 +2,117 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Cliente</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cliente · Provisiones</title>
 
-  <!-- CSS PRINCIPAL DE LA APP -->
-  <link rel="stylesheet" href="main.css">
+  <link rel="stylesheet" href="css/main.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#5fa8d3">
 </head>
 
-<body>
+<body data-page="clientes">
 
-<header class="app-header gradient">
-  <h1>Cliente</h1>
+<header class="app-header">
+  <div class="brand">
+    <img src="assets/logo.png" alt="Logo">
+    <div>
+      <strong>Provisiones</strong>
+      <small>Gestión profesional de provisiones</small>
+    </div>
+  </div>
+  <button id="themeToggle">🌙</button>
 </header>
 
-<main class="app-container">
+<div class="container">
 
-  <!-- ================= DATOS CLIENTE ================= -->
-  <section class="card">
+  <!-- DATOS DEL CLIENTE -->
+  <div class="card">
     <h3>Datos del cliente</h3>
 
-    <input id="clienteCodigo" type="text" placeholder="Código de cliente">
-    <input id="clienteNombre" type="text" placeholder="Nombre del cliente">
-    <input id="clienteDireccion" type="text" placeholder="Dirección">
+    <label>Código</label>
+    <input type="text" id="clienteCodigo" placeholder="Código único">
+
+    <label>Nombre</label>
+    <input type="text" id="clienteNombre" placeholder="Nombre del cliente">
+
+    <label>Dirección</label>
+    <input type="text" id="clienteDireccion" placeholder="Dirección">
 
     <button class="btn-primary" onclick="guardarDatosCliente()">
-      Guardar datos
+      Guardar cambios
     </button>
-  </section>
+  </div>
 
-  <!-- ================= NUEVA CONDICIÓN ================= -->
-  <section class="card">
+  <!-- CONDICIONES -->
+  <div class="card">
     <h3>Nueva condición</h3>
+    <input type="number" id="porcentaje" placeholder="% provisión">
+    <input type="date" id="fechaInicio">
+    <input type="date" id="fechaFin">
+    <button class="btn-primary" onclick="crearCondicion()">Añadir condición</button>
+  </div>
 
-    <input id="porcentaje" type="number" step="0.01" placeholder="% provisión">
-    <input id="fechaInicio" type="date">
-    <input id="fechaFin" type="date">
-
-    <button class="btn-primary" onclick="crearCondicion()">
-      Añadir condición
-    </button>
-  </section>
-
-  <!-- ================= CONDICIONES ================= -->
-  <section class="card">
+  <div class="card">
     <h3>Condiciones</h3>
     <div id="listaCondiciones"></div>
-  </section>
+  </div>
 
-  <!-- ================= NUEVA COMPRA ================= -->
-  <section class="card">
+  <!-- COMPRAS -->
+  <div class="card">
     <h3>Nueva compra</h3>
+    <input type="text" id="conceptoCompra" placeholder="Concepto / factura">
+    <input type="number" id="importeCompra" placeholder="Importe">
+    <input type="date" id="fechaCompra">
+    <button class="btn-primary" onclick="crearCompra()">Añadir compra</button>
+  </div>
 
-    <input id="conceptoCompra" type="text" placeholder="Concepto / factura">
-    <input id="importeCompra" type="number" step="0.01" placeholder="Importe">
-    <input id="fechaCompra" type="date">
-
-    <button class="btn-primary" onclick="crearCompra()">
-      Añadir compra
-    </button>
-  </section>
-
-  <!-- ================= NUEVO CARGO ================= -->
-  <section class="card">
+  <!-- CARGOS -->
+  <div class="card">
     <h3>Nuevo cargo</h3>
+    <input type="text" id="conceptoCargo" placeholder="Concepto">
+    <input type="number" id="importeCargo" placeholder="Importe">
+    <input type="date" id="fechaCargo">
+    <button class="btn-danger" onclick="crearCargo()">Añadir cargo</button>
+  </div>
 
-    <input id="conceptoCargo" type="text" placeholder="Concepto">
-    <input id="importeCargo" type="number" step="0.01" placeholder="Importe">
-    <input id="fechaCargo" type="date">
-
-    <button class="btn-danger" onclick="crearCargo()">
-      Añadir cargo
-    </button>
-  </section>
-
-  <!-- ================= SALDO ================= -->
-  <section class="card">
+  <!-- SALDO -->
+  <div class="card">
     <h3>Saldo provisión</h3>
-    <div id="saldoCliente" class="saldo">0,00 €</div>
-  </section>
+    <h2 id="saldoCliente">0 €</h2>
+  </div>
 
-  <!-- ================= MOVIMIENTOS ================= -->
-  <section class="card">
+  <!-- MOVIMIENTOS -->
+  <div class="card">
     <h3>Movimientos</h3>
     <div id="listaMovimientos"></div>
-  </section>
+  </div>
 
-  <!-- ================= GRÁFICOS ================= -->
-  <section class="card">
-    <h3>Evolución</h3>
-    <canvas id="graficoEvolucionCliente"></canvas>
-  </section>
+</div>
 
-  <section class="card">
-    <h3>Tipos</h3>
-    <canvas id="graficoTiposCliente"></canvas>
-  </section>
+<!-- NAV -->
+<nav class="bottom-nav">
+  <a href="index.html">
+    <span class="material-icons-outlined">dashboard</span>
+    <small>Dashboard</small>
+  </a>
+  <a href="clientes.html">
+    <span class="material-icons-outlined">groups</span>
+    <small>Clientes</small>
+  </a>
+  <a href="informes.html">
+    <span class="material-icons-outlined">description</span>
+    <small>Informes</small>
+  </a>
+</nav>
 
-</main>
-
-<!-- ================= SCRIPTS (MISMO ORDEN QUE EL RESTO DE LA APP) ================= -->
+<!-- SCRIPTS -->
 <script src="js/storage.js"></script>
-<script src="js/toast.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script src="js/condiciones.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<script src="js/condiciones.js"></script>
+<script src="js/toast.js"></script>
 
 </body>
 </html>

@@ -8,11 +8,13 @@ const clienteId = params.get("id");
 let ultimoMovimientoEliminado = null;
 let timeoutDeshacerMovimiento = null;
 
+let filtroTipoMovimiento = "todos";
+
 let chartEvolucionCliente = null;
 let chartTiposCliente = null;
 
 // CIERRE CONTABLE (opcional)
-const FECHA_CIERRE = null;
+const FECHA_CIERRE = null; // ej: "2024-12-31"
 
 /* =====================================================
    CLIENTE
@@ -47,44 +49,55 @@ function diasParaCaducar(cond) {
 }
 
 /* =====================================================
-   DATOS CLIENTE
+   DATOS CLIENTE (EDICIÓN)
 ===================================================== */
 
 function renderDatosCliente() {
-  const c = getCliente();
-  clienteCodigo.value = c.codigo || "";
-  clienteNombre.value = c.nombre || "";
-  clienteDireccion.value = c.direccion || "";
+  const cliente = getCliente();
+
+  document.getElementById("clienteCodigo").value = cliente.codigo || "";
+  document.getElementById("clienteNombre").value = cliente.nombre || "";
+  document.getElementById("clienteDireccion").value = cliente.direccion || "";
 }
 
 function guardarDatosCliente() {
-  const c = getCliente();
-  const codigo = clienteCodigo.value.trim();
-  const nombre = clienteNombre.value.trim();
-  const direccion = clienteDireccion.value.trim();
+  const cliente = getCliente();
 
-  if (!codigo || !nombre) {
-    showToast("Código y nombre obligatorios");
+  const nuevoCodigo =
+    document.getElementById("clienteCodigo").value.trim();
+  const nombre =
+    document.getElementById("clienteNombre").value.trim();
+  const direccion =
+    document.getElementById("clienteDireccion").value.trim();
+
+  if (!nuevoCodigo) {
+    showToast("El código del cliente es obligatorio");
     return;
   }
 
-  const duplicado = getData().clientes.some(x =>
-    x.id !== c.id &&
-    x.codigo &&
-    x.codigo.toLowerCase() === codigo.toLowerCase()
+  if (!nombre) {
+    showToast("El nombre del cliente es obligatorio");
+    return;
+  }
+
+  // VALIDAR CÓDIGO ÚNICO
+  const existe = getData().clientes.some(c =>
+    c.id !== cliente.id &&
+    c.codigo &&
+    c.codigo.toLowerCase() === nuevoCodigo.toLowerCase()
   );
 
-  if (duplicado) {
+  if (existe) {
     showToast("Ya existe otro cliente con ese código");
     return;
   }
 
-  c.codigo = codigo;
-  c.nombre = nombre;
-  c.direccion = direccion;
+  cliente.codigo = nuevoCodigo;
+  cliente.nombre = nombre;
+  cliente.direccion = direccion;
 
-  saveCliente(c);
-  showToast("Datos actualizados");
+  saveCliente(cliente);
+  showToast("Datos del cliente actualizados");
 }
 
 /* =====================================================
@@ -119,13 +132,12 @@ function crearCondicion() {
   }
 
   const cliente = getCliente();
-  cliente.condiciones = cliente.condiciones || [];
   cliente.condiciones.push(nueva);
 
   saveCliente(cliente);
   limpiarInputs();
   render();
-  showToast("Condición añadida correctamente");
+  showToast("Condición añadida");
 }
 
 function estadoCondicion(c) {
@@ -136,122 +148,151 @@ function estadoCondicion(c) {
 }
 
 function renderCondiciones() {
-  const c = getCliente();
-  listaCondiciones.innerHTML = "";
+  const cliente = getCliente();
+  const cont = document.getElementById("listaCondiciones");
+  cont.innerHTML = "";
 
-  if (!c.condiciones.length) {
-    listaCondiciones.innerHTML = `<div class="empty-state">No hay condiciones</div>`;
+  if (!cliente.condiciones.length) {
+    cont.innerHTML = `
+      <div class="empty-state">
+        <span>📅</span>
+        No hay condiciones
+      </div>
+    `;
     return;
   }
 
-  c.condiciones.forEach(cond => {
-    const estado = estadoCondicion(cond);
-    const dias = diasParaCaducar(cond);
+  cliente.condiciones.forEach(c => {
+    const estado = estadoCondicion(c);
+    const dias = diasParaCaducar(c);
+
+    const badge =
+      estado === "Activa" ? "badge-success" :
+      estado === "Pendiente" ? "badge-warning" :
+      "badge-danger";
 
     let aviso = "";
     if (estado === "Activa" && dias <= 15) {
-      aviso = `<span class="badge badge-warning">Caduca en ${dias} días</span>`;
+      aviso = `<br><span class="badge badge-warning">
+                Caduca en ${dias} días
+               </span>`;
     }
 
-    listaCondiciones.innerHTML += `
-      <div class="card">
-        <strong>${cond.porcentaje}%</strong><br>
-        ${cond.fechaInicio} → ${cond.fechaFin}<br>
-        <span class="badge">${estado}</span><br>
-        ${aviso}
-      </div>
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <strong>${c.porcentaje}%</strong><br>
+      ${c.fechaInicio} → ${c.fechaFin}<br>
+      <span class="badge ${badge}">${estado}</span>
+      ${aviso}
     `;
+    cont.appendChild(div);
   });
 }
 
 /* =====================================================
-   PROVISIÓN AUTOMÁTICA (ÚNICA Y CORRECTA)
+   CONDICIÓN ACTIVA
 ===================================================== */
 
 function getCondicionActiva(fecha) {
   return getCliente().condiciones.find(c =>
     fecha >= c.fechaInicio && fecha <= c.fechaFin
-  ) || null;
-}
-
-function calcularProvisionMovimiento(mov) {
-  if (mov.tipo !== "compra") return 0;
-
-  const cond = getCondicionActiva(mov.fecha);
-  if (!cond) return 0;
-
-  return +(mov.importe * cond.porcentaje / 100).toFixed(2);
+  );
 }
 
 /* =====================================================
-   MOVIMIENTOS
+   COMPRAS
 ===================================================== */
 
 function crearCompra() {
-  const concepto = conceptoCompra.value.trim();
-  const importe = Number(importeCompra.value);
-  const fecha = fechaCompra.value;
+  const concepto = document.getElementById("conceptoCompra").value.trim();
+  const importe = Number(document.getElementById("importeCompra").value);
+  const fecha = document.getElementById("fechaCompra").value;
   const hoy = new Date().toISOString().split("T")[0];
 
-  if (!concepto || importe <= 0 || !fecha || fecha > hoy) {
-    showToast("Datos incorrectos");
+  if (!concepto || importe <= 0 || !fecha) {
+    showToast("Datos de compra incorrectos");
     return;
   }
 
-  const cond = getCondicionActiva(fecha);
-  if (!cond) {
-    showToast("No hay condición válida");
+  if (fecha > hoy) {
+    showToast("La fecha no puede ser futura");
     return;
   }
 
-  const c = getCliente();
-  const mov = {
+  if (FECHA_CIERRE && fecha <= FECHA_CIERRE) {
+    showToast("Periodo cerrado, no se permiten cambios");
+    return;
+  }
+
+  const cliente = getCliente();
+  const condicion = getCondicionActiva(fecha);
+
+  if (!condicion) {
+    showToast("No hay condición válida para esa fecha");
+    return;
+  }
+
+  cliente.movimientos.push({
     id: crypto.randomUUID(),
     tipo: "compra",
     concepto,
     importe,
     fecha,
-    porcentaje: cond.porcentaje
-  };
+    porcentaje: condicion.porcentaje,
+    provision: importe * condicion.porcentaje / 100
+  });
 
-  mov.provision = calcularProvisionMovimiento(mov);
-  c.movimientos.push(mov);
-
-  saveCliente(c);
+  saveCliente(cliente);
   limpiarInputs();
   render();
   showToast("Compra añadida");
 }
 
-function crearCargo(tipo = "cargo") {
-  const concepto = conceptoCargo.value.trim();
-  const importe = Number(importeCargo.value);
-  const fecha = fechaCargo.value;
+/* =====================================================
+   CARGOS
+===================================================== */
+
+function crearCargo() {
+  const concepto = document.getElementById("conceptoCargo").value.trim();
+  const importe = Number(document.getElementById("importeCargo").value);
+  const fecha = document.getElementById("fechaCargo").value;
   const hoy = new Date().toISOString().split("T")[0];
 
-  if (!concepto || importe <= 0 || !fecha || fecha > hoy) {
-    showToast("Datos incorrectos");
+  if (!concepto || importe <= 0 || !fecha) {
+    showToast("Datos de cargo incorrectos");
     return;
   }
 
-  if (calcularSaldo() - importe < 0) {
-    showToast("Saldo insuficiente");
+  if (fecha > hoy) {
+    showToast("La fecha no puede ser futura");
     return;
   }
 
-  const c = getCliente();
-  c.movimientos.push({
+  if (FECHA_CIERRE && fecha <= FECHA_CIERRE) {
+    showToast("Periodo cerrado, no se permiten cambios");
+    return;
+  }
+
+  const saldoActual = calcularSaldo();
+  if (saldoActual - importe < 0) {
+    showToast("Este cargo dejaría el saldo en negativo");
+    return;
+  }
+
+  const cliente = getCliente();
+  cliente.movimientos.push({
     id: crypto.randomUUID(),
-    tipo,
+    tipo: "cargo",
     concepto,
     importe,
     fecha
   });
 
-  saveCliente(c);
+  saveCliente(cliente);
   limpiarInputs();
   render();
-  showToast("Movimiento añadido");
+  showToast("Cargo añadido");
 }
 
 /* =====================================================
@@ -260,36 +301,86 @@ function crearCargo(tipo = "cargo") {
 
 function calcularSaldo() {
   return getCliente().movimientos.reduce((s, m) => {
-    if (m.tipo === "compra") return s + (m.provision || 0);
-    if (m.tipo === "cargo" || m.tipo === "promocion") return s - m.importe;
+    if (m.tipo === "compra") return s + m.provision;
+    if (m.tipo === "cargo") return s - m.importe;
     return s;
   }, 0);
 }
 
 /* =====================================================
-   RENDER MOVIMIENTOS
+   MOVIMIENTOS
 ===================================================== */
 
 function renderMovimientos() {
-  const c = getCliente();
-  listaMovimientos.innerHTML = "";
+  const cliente = getCliente();
+  const cont = document.getElementById("listaMovimientos");
+  cont.innerHTML = "";
 
-  if (!c.movimientos.length) {
-    listaMovimientos.innerHTML = `<div class="empty-state">No hay movimientos</div>`;
+  if (!cliente.movimientos.length) {
+    cont.innerHTML = `
+      <div class="empty-state">
+        <span>💼</span>
+        No hay movimientos
+      </div>
+    `;
     return;
   }
 
-  c.movimientos.forEach(m => {
-    listaMovimientos.innerHTML += `
-      <div class="card">
-        <strong>${m.concepto}</strong><br>
-        Fecha: ${m.fecha}<br>
-        ${m.tipo === "compra"
-          ? `Importe: ${m.importe} €<br>Provisión: ${m.provision.toFixed(2)} €`
-          : `-${m.importe} € (${m.tipo})`}
-      </div>
+  cliente.movimientos.forEach(m => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <strong>${m.concepto}</strong><br>
+      Fecha: ${m.fecha}<br>
+      ${
+        m.tipo === "compra"
+          ? `Importe: ${m.importe} €<br>
+             Provisión: ${m.provision.toFixed(2)} €`
+          : `Cargo: -${m.importe} €`
+      }
+      <br><br>
+      <button class="btn-danger"
+        onclick="eliminarMovimiento('${m.id}')">
+        Eliminar
+      </button>
     `;
+    cont.appendChild(div);
   });
+}
+
+/* =====================================================
+   ELIMINAR + DESHACER
+===================================================== */
+
+function eliminarMovimiento(id) {
+  const cliente = getCliente();
+  const idx = cliente.movimientos.findIndex(m => m.id === id);
+  if (idx === -1) return;
+
+  ultimoMovimientoEliminado = cliente.movimientos[idx];
+  cliente.movimientos.splice(idx, 1);
+
+  saveCliente(cliente);
+  render();
+
+  showToast("Movimiento eliminado · Deshacer");
+
+  clearTimeout(timeoutDeshacerMovimiento);
+  timeoutDeshacerMovimiento = setTimeout(() => {
+    ultimoMovimientoEliminado = null;
+  }, 4000);
+}
+
+function deshacerEliminarMovimiento() {
+  if (!ultimoMovimientoEliminado) return;
+
+  const cliente = getCliente();
+  cliente.movimientos.push(ultimoMovimientoEliminado);
+  saveCliente(cliente);
+
+  ultimoMovimientoEliminado = null;
+  render();
+  showToast("Movimiento restaurado");
 }
 
 /* =====================================================
@@ -297,16 +388,16 @@ function renderMovimientos() {
 ===================================================== */
 
 function renderGraficosCliente() {
-  const c = getCliente();
-  if (!c.movimientos.length) return;
+  const cliente = getCliente();
+  if (!cliente.movimientos.length) return;
 
-  const movs = [...c.movimientos].sort((a, b) =>
+  const movs = [...cliente.movimientos].sort((a, b) =>
     a.fecha.localeCompare(b.fecha)
   );
 
   let saldo = 0;
   const labels = [];
-  const data = [];
+  const dataSaldo = [];
   let compras = 0;
   let cargos = 0;
 
@@ -315,33 +406,56 @@ function renderGraficosCliente() {
       saldo += m.provision;
       compras += m.provision;
     }
-    if (m.tipo !== "compra") {
+    if (m.tipo === "cargo") {
       saldo -= m.importe;
       cargos += m.importe;
     }
     labels.push(m.fecha);
-    data.push(saldo);
+    dataSaldo.push(saldo);
   });
 
   if (chartEvolucionCliente) chartEvolucionCliente.destroy();
-  chartEvolucionCliente = new Chart(graficoEvolucionCliente, {
-    type: "line",
-    data: { labels, datasets: [{ data, fill: true }] },
-    options: { plugins: { legend: { display: false } } }
-  });
+  chartEvolucionCliente = new Chart(
+    document.getElementById("graficoEvolucionCliente"),
+    {
+      type: "line",
+      data: {
+        labels,
+        datasets: [{
+          data: dataSaldo,
+          borderColor: "#5fa8d3",
+          backgroundColor: "rgba(95,168,211,.15)",
+          fill: true,
+          tension: 0.35
+        }]
+      },
+      options: { plugins: { legend: { display: false } } }
+    }
+  );
 
   if (chartTiposCliente) chartTiposCliente.destroy();
-  chartTiposCliente = new Chart(graficoTiposCliente, {
-    type: "doughnut",
-    data: {
-      labels: ["Provisión", "Cargos"],
-      datasets: [{ data: [compras, cargos] }]
+  chartTiposCliente = new Chart(
+    document.getElementById("graficoTiposCliente"),
+    {
+      type: "doughnut",
+      data: {
+        labels: ["Compras", "Cargos"],
+        datasets: [{
+          data: [compras, cargos],
+          backgroundColor: ["#95d5b2", "#ff8fa3"],
+          borderWidth: 0
+        }]
+      },
+      options: {
+        cutout: "65%",
+        plugins: { legend: { position: "bottom" } }
+      }
     }
-  });
+  );
 }
 
 /* =====================================================
-   UTILS / INIT
+   UTILS / RENDER
 ===================================================== */
 
 function limpiarInputs() {
@@ -350,10 +464,14 @@ function limpiarInputs() {
 
 function render() {
   renderDatosCliente();
-  saldoCliente.innerText = calcularSaldo().toFixed(2) + " €";
+
+  document.getElementById("saldoCliente").innerText =
+    calcularSaldo().toFixed(2) + " €";
+
   renderCondiciones();
   renderMovimientos();
   renderGraficosCliente();
 }
 
+/* INIT */
 render();
