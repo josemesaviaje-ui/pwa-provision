@@ -1,27 +1,58 @@
-const STORAGE_KEY = "pwa_provisiones_data";
+// js/storage.js - Versión con Cloud Firestore
 
-function getData() {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : { clientes: [] };
+import { agregar, actualizar, eliminar, escuchar, db } from './firestore.js';
+
+// Variables globales para cachear los datos (opcional, pero útil para acceso rápido)
+let clientesCache = [];
+
+// === CLIENTES ===
+export function escucharClientes(callback) {
+  return escuchar('clientes', (lista) => {
+    clientesCache = lista;
+    callback(lista);
+  });
 }
 
-function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+export function getClientes() {
+  return clientesCache;  // Devuelve el caché (siempre actualizado por el listener)
 }
 
-/* CLIENTES */
-function getClientes() {
-  return getData().clientes;
+export async function addCliente(cliente) {
+  try {
+    const docRef = await agregar('clientes', {
+      codigo: cliente.codigo,
+      nombre: cliente.nombre,
+      direccion: cliente.direccion || ''
+    });
+    return { id: docRef.id, ...cliente };  // Devuelve el cliente con su nuevo ID de Firestore
+  } catch (error) {
+    console.error("Error añadiendo cliente:", error);
+    throw error;
+  }
 }
 
-function addCliente(cliente) {
-  const data = getData();
-  data.clientes.push(cliente);
-  saveData(data);
+export async function updateCliente(id, nuevosDatos) {
+  try {
+    await actualizar('clientes', id, nuevosDatos);
+  } catch (error) {
+    console.error("Error actualizando cliente:", error);
+    throw error;
+  }
 }
 
-function deleteCliente(id) {
-  const data = getData();
-  data.clientes = data.clientes.filter(c => c.id !== id);
-  saveData(data);
+export async function deleteCliente(id) {
+  try {
+    await eliminar('clientes', id);
+  } catch (error) {
+    console.error("Error eliminando cliente:", error);
+    throw error;
+  }
+}
+
+// === INICIALIZACIÓN GLOBAL (llamar desde las páginas principales) ===
+export function iniciarEscuchaGlobal() {
+  escucharClientes(() => {
+    // Se ejecuta cada vez que cambian los clientes
+    // Puedes añadir aquí listeners para otras colecciones si las tienes
+  });
 }

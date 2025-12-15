@@ -1,15 +1,17 @@
 /* =========================
-   CLIENTES
+   CLIENTES - Versión Firestore
 ========================= */
 
-let ultimoClienteEliminado = null;
+import { escucharClientes, addCliente, deleteCliente, getClientes } from './storage.js';
+
+let ultimoClienteEliminado = null;  // Guardará {id, datos}
 let timeoutDeshacer = null;
 
 /* =========================
    CREAR CLIENTE
 ========================= */
 
-function crearCliente() {
+async function crearCliente() {
   const codigoInput = document.getElementById("codigoCliente");
   const nombreInput = document.getElementById("nombreCliente");
   const direccionInput = document.getElementById("direccionCliente");
@@ -36,23 +38,27 @@ function crearCliente() {
     return;
   }
 
-  const cliente = {
-    id: crypto.randomUUID(),
+  const nuevoCliente = {
     codigo,
     nombre,
-    direccion,
+    direccion: direccion || '',
     condiciones: [],
     movimientos: []
   };
 
-  addCliente(cliente);
+  try {
+    const clienteCreado = await addCliente(nuevoCliente);  // Devuelve objeto con id de Firestore
 
-  codigoInput.value = "";
-  nombreInput.value = "";
-  direccionInput.value = "";
+    codigoInput.value = "";
+    nombreInput.value = "";
+    direccionInput.value = "";
 
-  renderClientes();
-  showToast("Cliente creado");
+    showToast("Cliente creado");
+    // No necesitas renderClientes() manual → el listener lo hace automáticamente
+  } catch (error) {
+    showToast("Error al crear cliente");
+    console.error(error);
+  }
 }
 
 /* =========================
@@ -62,8 +68,7 @@ function crearCliente() {
 function renderClientes() {
   const cont = document.getElementById("listaClientes");
 
-  const texto =
-    document.getElementById("buscarCliente")?.value.toLowerCase() || "";
+  const texto = document.getElementById("buscarCliente")?.value.toLowerCase() || "";
 
   const clientes = getClientes()
     .filter(c =>
@@ -112,32 +117,41 @@ function renderClientes() {
    ELIMINAR + DESHACER
 ========================= */
 
-function eliminarCliente(id) {
+async function eliminarCliente(id) {
   const clientes = getClientes();
   const cliente = clientes.find(c => c.id === id);
   if (!cliente) return;
 
-  ultimoClienteEliminado = cliente;
+  ultimoClienteEliminado = { id, datos: cliente };
 
-  deleteCliente(id);
-  renderClientes();
+  try {
+    await deleteCliente(id);
+    renderClientes();  // Opcional: el listener lo hará automáticamente
 
-  showToast("Cliente eliminado · Deshacer");
+    showToast("Cliente eliminado · Deshacer");
 
-  clearTimeout(timeoutDeshacer);
-  timeoutDeshacer = setTimeout(() => {
-    ultimoClienteEliminado = null;
-  }, 4000);
+    clearTimeout(timeoutDeshacer);
+    timeoutDeshacer = setTimeout(() => {
+      ultimoClienteEliminado = null;
+    }, 4000);
+  } catch (error) {
+    showToast("Error al eliminar");
+    console.error(error);
+  }
 }
 
-function deshacerEliminarCliente() {
+async function deshacerEliminarCliente() {
   if (!ultimoClienteEliminado) return;
 
-  addCliente(ultimoClienteEliminado);
-  ultimoClienteEliminado = null;
+  try {
+    await addCliente(ultimoClienteEliminado.datos);
+    ultimoClienteEliminado = null;
 
-  renderClientes();
-  showToast("Cliente restaurado");
+    showToast("Cliente restaurado");
+  } catch (error) {
+    showToast("Error al restaurar");
+    console.error(error);
+  }
 }
 
 /* =========================
@@ -153,5 +167,11 @@ document.addEventListener("click", e => {
   }
 });
 
-/* INIT */
-renderClientes();
+/* =========================
+   INIT - Escucha en tiempo real
+========================= */
+
+// Esto sustituye al renderClientes() inicial
+escucharClientes((lista) => {
+  renderClientes();  // Se ejecuta al cargar y cada vez que cambian los datos
+});

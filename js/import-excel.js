@@ -1,11 +1,13 @@
 /* =====================================================
-   IMPORTACIÓN MASIVA (COMPRAS / CARGOS)
+   IMPORTACIÓN MASIVA (COMPRAS / CARGOS) - Versión Firestore
 ===================================================== */
 
+import { agregar, eliminar } from './firestore.js';
+
+// Variable global para deshacer la última importación
 let ultimaImportacion = {
   tipo: null,        // "compra" | "cargo"
-  clienteId: null,
-  movimientos: []
+  movimientoIds: []  // Array de IDs de Firestore de los movimientos añadidos
 };
 
 /* =====================================================
@@ -39,61 +41,90 @@ function normalizarFecha(fecha) {
 }
 
 /* =====================================================
+   OBTENER CONDICIÓN ACTIVA (desde el array global del cliente)
+===================================================== */
+
+// Esta función la usamos desde condiciones.js, así que la importamos o redefinimos aquí si es necesario
+// Como condicionesCliente está en condiciones.js, asumimos que está disponible globalmente
+// o la copiamos aquí (recomendado para evitar dependencias circulares)
+
+function getCondicionActiva(fecha) {
+  // Copia segura de la función de condiciones.js
+  return window.condicionesCliente?.find(c => 
+    fecha >= c.fechaInicio && fecha <= c.fechaFin
+  );
+}
+
+/* =====================================================
    IMPORTAR COMPRAS
 ===================================================== */
 
-function importarComprasExcel(input) {
+async function importarComprasExcel() {
+  const input = document.getElementById("excelCompras");
   const file = input.files[0];
   if (!file) return;
 
   const reader = new FileReader();
 
-  reader.onload = e => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet);
 
-    const cliente = getCliente();
-    const movimientosImportados = [];
+      const params = new URLSearchParams(window.location.search);
+      const clienteId = params.get("id");
 
-    rows.forEach((r, i) => {
-      const concepto = (r.concepto || r.Concepto || "").trim();
-      const importe = normalizarImporte(r.importe || r.Importe);
-      const fecha = normalizarFecha(r.fecha || r.Fecha);
+      if (!clienteId) {
+        showToast("Error: No se pudo identificar el cliente");
+        return;
+      }
 
-      if (!concepto || !importe || !fecha) return;
+      const movimientosImportados = [];
 
-      const condicion = getCondicionActiva(fecha);
-      if (!condicion) return;
+      for (const r of rows) {
+        const concepto = (r.concepto || r.Concepto || "").trim();
+        const importe = normalizarImporte(r.importe || r.Importe);
+        const fecha = normalizarFecha(r.fecha || r.Fecha);
 
-      movimientosImportados.push({
-        id: crypto.randomUUID(),
+        if (!concepto || isNaN(importe) || importe <= 0 || !fecha) continue;
+
+        const condicion = getCondicionActiva(fecha);
+        if (!condicion) continue;  // Salta si no hay condición activa
+
+        const provision = importe * condicion.porcentaje / 100;
+
+        const docRef = await agregar('movimientos', {
+          clienteId,
+          tipo: "compra",
+          concepto,
+          importe,
+          fecha,
+          porcentaje: condicion.porcentaje,
+          provision
+        });
+
+        movimientosImportados.push(docRef.id);  // Guardamos el ID real de Firestore
+      }
+
+      if (movimientosImportados.length === 0) {
+        showToast("No se pudo importar ninguna compra válida");
+        return;
+      }
+
+      ultimaImportacion = {
         tipo: "compra",
-        concepto,
-        importe,
-        fecha,
-        porcentaje: condicion.porcentaje,
-        provision: importe * condicion.porcentaje / 100
-      });
-    });
+        movimientoIds: movimientosImportados
+      };
 
-    if (!movimientosImportados.length) {
-      showToast("No se pudo importar ninguna compra");
-      return;
+      showToast(`Importadas ${movimientosImportados.length} compras`);
+      input.value = "";  // Limpia el input file
+
+    } catch (error) {
+      console.error("Error importando compras:", error);
+      showToast("Error al importar el archivo");
     }
-
-    cliente.movimientos.push(...movimientosImportados);
-    saveCliente(cliente);
-
-    ultimaImportacion = {
-      tipo: "compra",
-      clienteId: cliente.id,
-      movimientos: movimientosImportados.map(m => m.id)
-    };
-
-    render();
-    showToast(`Importadas ${movimientosImportados.length} compras`);
   };
 
   reader.readAsArrayBuffer(file);
@@ -103,82 +134,102 @@ function importarComprasExcel(input) {
    IMPORTAR CARGOS
 ===================================================== */
 
-function importarCargosExcel(input) {
+async function importarCargosExcel() {
+  const input = document.getElementById("importCargosFile");
   const file = input.files[0];
   if (!file) return;
 
   const reader = new FileReader();
 
-  reader.onload = e => {
-    const data = new Uint8Array(e.target.result);
-    const workbook = XLSX.read(data, { type: "array" });
-    const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(sheet);
+  reader.onload = async (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet);
 
-    const cliente = getCliente();
-    const movimientosImportados = [];
+      const params = new URLSearchParams(window.location.search);
+      const clienteId = params.get("id");
 
-    rows.forEach(r => {
-      const concepto = (r.concepto || r.Concepto || "").trim();
-      const importe = normalizarImporte(r.importe || r.Importe);
-      const fecha = normalizarFecha(r.fecha || r.Fecha);
+      if (!clienteId) {
+        showToast("Error: No se pudo identificar el cliente");
+        return;
+      }
 
-      if (!concepto || !importe || !fecha) return;
+      const movimientosImportados = [];
 
-      movimientosImportados.push({
-        id: crypto.randomUUID(),
+      for (const r of rows) {
+        const concepto = (r.concepto || r.Concepto || "").trim();
+        const importe = normalizarImporte(r.importe || r.Importe);
+        const fecha = normalizarFecha(r.fecha || r.Fecha);
+
+        if (!concepto || isNaN(importe) || importe <= 0 || !fecha) continue;
+
+        const docRef = await agregar('movimientos', {
+          clienteId,
+          tipo: "cargo",
+          concepto,
+          importe,
+          fecha
+        });
+
+        movimientosImportados.push(docRef.id);
+      }
+
+      if (movimientosImportados.length === 0) {
+        showToast("No se pudo importar ningún cargo válido");
+        return;
+      }
+
+      ultimaImportacion = {
         tipo: "cargo",
-        concepto,
-        importe,
-        fecha
-      });
-    });
+        movimientoIds: movimientosImportados
+      };
 
-    if (!movimientosImportados.length) {
-      showToast("No se pudo importar ningún cargo");
-      return;
+      showToast(`Importados ${movimientosImportados.length} cargos`);
+      input.value = "";
+
+    } catch (error) {
+      console.error("Error importando cargos:", error);
+      showToast("Error al importar el archivo");
     }
-
-    cliente.movimientos.push(...movimientosImportados);
-    saveCliente(cliente);
-
-    ultimaImportacion = {
-      tipo: "cargo",
-      clienteId: cliente.id,
-      movimientos: movimientosImportados.map(m => m.id)
-    };
-
-    render();
-    showToast(`Importados ${movimientosImportados.length} cargos`);
   };
 
   reader.readAsArrayBuffer(file);
 }
 
 /* =====================================================
-   DESHACER IMPORTACIÓN
+   DESHACER ÚLTIMA IMPORTACIÓN
 ===================================================== */
 
-function deshacerUltimaImportacion() {
-  if (!ultimaImportacion.movimientos.length) {
-    showToast("No hay importaciones para deshacer");
+async function deshacerUltimaImportacion() {
+  if (!ultimaImportacion.movimientoIds.length) {
+    showToast("No hay importación para deshacer");
     return;
   }
 
-  const cliente = getCliente();
+  try {
+    // Eliminamos todos los movimientos de la última importación
+    const promesas = ultimaImportacion.movimientoIds.map(id => eliminar('movimientos', id));
+    await Promise.all(promesas);
 
-  cliente.movimientos = cliente.movimientos.filter(
-    m => !ultimaImportacion.movimientos.includes(m.id)
-  );
+    ultimaImportacion = {
+      tipo: null,
+      movimientoIds: []
+    };
 
-  saveCliente(cliente);
-
-  ultimaImportacion = {
-    tipo: null,
-    clienteId: null,
-    movimientos: []
-  };
-
-  render();
-  showToast("Importación deshecha correctamente");
+    showToast("Importación deshecha correctamente");
+  } catch (error) {
+    console.error("Error al deshacer importación:", error);
+    showToast("Error al deshacer");
+  }
 }
+
+/* =====================================================
+   EXPORTS GLOBALES (para onclick en HTML)
+===================================================== */
+
+// Hacemos las funciones accesibles globalmente
+window.importarComprasExcel = importarComprasExcel;
+window.importarCargosExcel = importarCargosExcel;
+window.deshacerUltimaImportacion = deshacerUltimaImportacion;
