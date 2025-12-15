@@ -12,6 +12,7 @@ let filtroTipoMovimiento = "todos";
 
 let chartEvolucionCliente = null;
 let chartTiposCliente = null;
+let condicionEditandoId = null;
 
 // CIERRE CONTABLE (opcional)
 const FECHA_CIERRE = null; // ej: "2024-12-31"
@@ -119,6 +120,33 @@ function crearCondicion() {
     return;
   }
 
+  const cliente = getCliente();
+
+if (condicionEditandoId) {
+  // === EDITAR ===
+  const condicion = cliente.condiciones.find(c => c.id === condicionEditandoId);
+
+  const editada = {
+    ...condicion,
+    porcentaje,
+    fechaInicio: inicio,
+    fechaFin: fin
+  };
+
+  if (haySolapamiento(editada)) {
+    showToast("La condición se solapa con otra existente");
+    return;
+  }
+
+  condicion.porcentaje = porcentaje;
+  condicion.fechaInicio = inicio;
+  condicion.fechaFin = fin;
+
+  condicionEditandoId = null;
+  showToast("Condición actualizada");
+
+} else {
+  // === CREAR ===
   const nueva = {
     id: crypto.randomUUID(),
     porcentaje,
@@ -131,13 +159,36 @@ function crearCondicion() {
     return;
   }
 
-  const cliente = getCliente();
   cliente.condiciones.push(nueva);
+  showToast("Condición añadida");
+}
+
+saveCliente(cliente);
+limpiarInputs();
+render();
+}
+
+function editarCondicion(id) {
+  const cliente = getCliente();
+  const condicion = cliente.condiciones.find(c => c.id === id);
+  if (!condicion) return;
+
+  document.getElementById("porcentaje").value = condicion.porcentaje;
+  document.getElementById("fechaInicio").value = condicion.fechaInicio;
+  document.getElementById("fechaFin").value = condicion.fechaFin;
+
+  condicionEditandoId = id;
+}
+
+function eliminarCondicion(id) {
+  if (!confirm("¿Eliminar esta condición?")) return;
+
+  const cliente = getCliente();
+  cliente.condiciones = cliente.condiciones.filter(c => c.id !== id);
 
   saveCliente(cliente);
-  limpiarInputs();
   render();
-  showToast("Condición añadida");
+  showToast("Condición eliminada");
 }
 
 function estadoCondicion(c) {
@@ -181,11 +232,16 @@ function renderCondiciones() {
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `
-      <strong>${c.porcentaje}%</strong><br>
-      ${c.fechaInicio} → ${c.fechaFin}<br>
-      <span class="badge ${badge}">${estado}</span>
-      ${aviso}
-    `;
+  <strong>${c.porcentaje}%</strong><br>
+  ${c.fechaInicio} → ${c.fechaFin}<br>
+  <span class="badge ${badge}">${estado}</span>
+  ${aviso}
+  <br><br>
+  <button onclick="editarCondicion('${c.id}')">✏️ Editar</button>
+  <button class="btn-danger" onclick="eliminarCondicion('${c.id}')">
+    🗑️ Eliminar
+  </button>
+`;
     cont.appendChild(div);
   });
 }
