@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Gestión Provisión</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="login-container">
+    <h2>Gestión de Provisión</h2>
+    <form id="loginForm">
+      <input type="email" id="email" placeholder="Email" required>
+      <input type="password" id="password" placeholder="Contraseña" required>
+      <button type="submit">Entrar</button>
+    </form>
+    <p id="error" style="color:red; display:none;"></p>
+    <p>No tienes cuenta? Regístrate con el mismo botón (creará una nueva).</p>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+    const firebaseConfig = {
+  apiKey: "AIzaSyCc5Bo9fLAF0FR3m2m6RWYH2QsSvsztOik",
+  authDomain: "provisiones-pwa.firebaseapp.com",
+  projectId: "provisiones-pwa",
+  storageBucket: "provisiones-pwa.firebasestorage.app",
+  messagingSenderId: "4278805330",
+  appId: "1:4278805330:web:738dc43f624bad2fe3508b"
+};
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const error = document.getElementById('error');
+
+      try {
+        await signInWithEmailAndPassword(auth, email, password);
+        window.location.href = 'index.html';
+      } catch (err) {
+        // Si falla login, intenta registro
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          window.location.href = 'index.html';
+        } catch (regErr) {
+          error.textContent = regErr.message;
+          error.style.display = 'block';
+        }
+      }
+    });
+  </script>
+</body>
+</html>

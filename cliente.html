@@ -21,7 +21,13 @@
       <small>Gestión profesional de provisiones</small>
     </div>
   </div>
-  <button id="themeToggle">🌙</button>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <button id="themeToggle">🌙</button>
+    <!-- Botón nuevo de cerrar sesión -->
+    <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
+      🚪
+    </button>
+  </div>
 </header>
 
 <div class="container">
@@ -67,42 +73,42 @@
     <button class="btn-primary" onclick="crearCompra()">Añadir compra</button>
   </div>
 
-<!-- IMPORTAR COMPRAS -->
-<div class="card">
-  <h3>Importar compras (Excel)</h3>
+  <!-- IMPORTAR COMPRAS -->
+  <div class="card">
+    <h3>Importar compras (Excel)</h3>
 
-  <input type="file" id="excelCompras" accept=".xlsx,.xls">
-  <button class="btn-primary" onclick="importarComprasExcel()">
-    Importar compras
+    <input type="file" id="excelCompras" accept=".xlsx,.xls">
+    <button class="btn-primary" onclick="importarComprasExcel()">
+      Importar compras
+    </button>
+
+    <small>
+      Columnas requeridas: concepto | importe | fecha
+    </small>
+  </div>
+
+  <!-- IMPORTAR CARGOS -->
+  <div class="card">
+    <h3>Importar cargos (Excel)</h3>
+
+    <input
+      type="file"
+      id="importCargosFile"
+      accept=".xlsx,.xls,.csv"
+    >
+
+    <button class="btn-danger" onclick="importarCargos()">
+      Importar cargos
+    </button>
+
+    <small>
+      Columnas requeridas: concepto | importe | fecha
+    </small>
+  </div>
+
+  <button class="btn-danger" onclick="deshacerUltimaImportacion()">
+    Deshacer última importación
   </button>
-
-  <small>
-    Columnas requeridas: concepto | importe | fecha
-  </small>
-</div>
-
-<!-- IMPORTAR CARGOS -->
-<div class="card">
-  <h3>Importar cargos (Excel)</h3>
-
-  <input
-    type="file"
-    id="importCargosFile"
-    accept=".xlsx,.xls,.csv"
-  >
-
-  <button class="btn-danger" onclick="importarCargos()">
-    Importar cargos
-  </button>
-
-  <small>
-    Columnas requeridas: concepto | importe | fecha
-  </small>
-</div>
-
-<button class="btn-danger" onclick="deshacerUltimaImportacion()">
-  Deshacer última importación
-</button>
 
   <!-- CARGOS -->
   <div class="card">
@@ -152,6 +158,18 @@
 <script src="js/toast.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 <script src="js/import-excel.js"></script>
+
+<!-- ==================== PROTECCIÓN Y LOGOUT ==================== -->
+<script type="module">
+  import { protegerPagina, cerrarSesion } from './js/auth.js';
+
+  // Si no está logueado → va a login.html
+  protegerPagina();
+
+  // Botón de cerrar sesión
+  document.getElementById('btnLogout')?.addEventListener('click', cerrarSesion);
+</script>
+<!-- ============================================================= -->
 
 </body>
 </html>

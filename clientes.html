@@ -22,7 +22,13 @@
     </div>
   </div>
 
-  <button id="themeToggle">🌙</button>
+  <div style="display: flex; align-items: center; gap: 12px;">
+    <button id="themeToggle">🌙</button>
+    <!-- Botón nuevo de cerrar sesión -->
+    <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
+      🚪
+    </button>
+  </div>
 </header>
 
 <div class="container">
@@ -95,6 +101,18 @@
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
+
+<!-- ==================== PROTECCIÓN Y LOGOUT ==================== -->
+<script type="module">
+  import { protegerPagina, cerrarSesion } from './js/auth.js';
+
+  // Si no está logueado → redirige a login.html
+  protegerPagina();
+
+  // Botón de cerrar sesión
+  document.getElementById('btnLogout')?.addEventListener('click', cerrarSesion);
+</script>
+<!-- ============================================================= -->
 
 </body>
 </html>
