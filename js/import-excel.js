@@ -1,196 +1,184 @@
 /* =====================================================
-   IMPORTACIÓN EXCEL · COMPRAS / CARGOS
-   NO MODIFICA NADA EXISTENTE
+   IMPORTACIÓN MASIVA (COMPRAS / CARGOS)
 ===================================================== */
 
-/* ===== ESTADO PARA DESHACER ===== */
-
 let ultimaImportacion = {
+  tipo: null,        // "compra" | "cargo"
   clienteId: null,
   movimientos: []
 };
 
 /* =====================================================
-   UTIL · NORMALIZAR IMPORTE
+   HELPERS
 ===================================================== */
 
 function normalizarImporte(valor) {
-  if (valor === null || valor === undefined) return NaN;
+  if (typeof valor === "number") return valor;
 
-  if (typeof valor === "number") {
-    return isNaN(valor) ? NaN : valor;
+  return Number(
+    String(valor)
+      .replace(/€/g, "")
+      .replace(/\$/g, "")
+      .replace(/\s/g, "")
+      .replace(/\./g, "")
+      .replace(",", ".")
+  );
+}
+
+function normalizarFecha(fecha) {
+  if (fecha instanceof Date) {
+    return fecha.toISOString().split("T")[0];
   }
 
-  let txt = valor.toString().trim();
-  if (!txt) return NaN;
-
-  txt = txt
-    .replace(/€/g, "")
-    .replace(/\$/g, "")
-    .replace(/£/g, "")
-    .replace(/[^\d,.\-]/g, "");
-
-  const tieneComa = txt.includes(",");
-  const tienePunto = txt.includes(".");
-
-  if (tieneComa && tienePunto) {
-    if (txt.lastIndexOf(",") > txt.lastIndexOf(".")) {
-      txt = txt.replace(/\./g, "").replace(",", ".");
-    } else {
-      txt = txt.replace(/,/g, "");
-    }
-  } else if (tieneComa) {
-    txt = txt.replace(",", ".");
+  if (typeof fecha === "number") {
+    const d = new Date((fecha - 25569) * 86400 * 1000);
+    return d.toISOString().split("T")[0];
   }
 
-  const num = Number(txt);
-  return isNaN(num) ? NaN : num;
+  return fecha;
 }
 
 /* =====================================================
    IMPORTAR COMPRAS
 ===================================================== */
 
-function importarComprasDesdeExcel(filas, clienteId) {
-  const data = getData();
-  const cliente = data.clientes.find(c => c.id === clienteId);
-  if (!cliente) return;
+function importarComprasExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
 
-  let importados = 0;
-  let errores = 0;
-
-  ultimaImportacion = {
-    clienteId,
-    movimientos: []
-  };
-
-  filas.forEach(fila => {
-    const concepto = (fila.concepto || fila.factura || "").toString().trim();
-    const fecha = fila.fecha;
-    const importe = normalizarImporte(fila.importe);
-
-    if (!concepto || !fecha || isNaN(importe) || importe <= 0) {
-      errores++;
-      return;
-    }
-
-    const condicion = cliente.condiciones.find(c =>
-      fecha >= c.fechaInicio && fecha <= c.fechaFin
-    );
-
-    if (!condicion) {
-      errores++;
-      return;
-    }
-
-    const mov = {
-      id: crypto.randomUUID(),
-      tipo: "compra",
-      concepto,
-      importe,
-      fecha,
-      porcentaje: condicion.porcentaje,
-      provision: +(importe * condicion.porcentaje / 100).toFixed(2)
-    };
-
-    cliente.movimientos.push(mov);
-    ultimaImportacion.movimientos.push(mov.id);
-    importados++;
-  });
-
-  saveData(data);
-  render();
-  showToast(`Compras importadas: ${importados} · Errores: ${errores}`);
-}
-
-/* =====================================================
-   IMPORTAR CARGOS
-===================================================== */
-
-function importarCargosDesdeExcel(filas, clienteId) {
-  const data = getData();
-  const cliente = data.clientes.find(c => c.id === clienteId);
-  if (!cliente) return;
-
-  let importados = 0;
-  let errores = 0;
-
-  ultimaImportacion = {
-    clienteId,
-    movimientos: []
-  };
-
-  filas.forEach(fila => {
-    const concepto = (fila.concepto || "").toString().trim();
-    const fecha = fila.fecha;
-    const importe = normalizarImporte(fila.importe);
-
-    if (!concepto || !fecha || isNaN(importe) || importe <= 0) {
-      errores++;
-      return;
-    }
-
-    const mov = {
-      id: crypto.randomUUID(),
-      tipo: "cargo",
-      concepto,
-      importe,
-      fecha
-    };
-
-    cliente.movimientos.push(mov);
-    ultimaImportacion.movimientos.push(mov.id);
-    importados++;
-  });
-
-  saveData(data);
-  render();
-  showToast(`Cargos importados: ${importados} · Errores: ${errores}`);
-}
-
-/* =====================================================
-   DESHACER ÚLTIMA IMPORTACIÓN
-===================================================== */
-
-function deshacerUltimaImportacion() {
-  if (!ultimaImportacion.clienteId || !ultimaImportacion.movimientos.length) {
-    showToast("No hay importación para deshacer");
-    return;
-  }
-
-  const data = getData();
-  const cliente = data.clientes.find(c => c.id === ultimaImportacion.clienteId);
-  if (!cliente) return;
-
-  cliente.movimientos = cliente.movimientos.filter(
-    m => !ultimaImportacion.movimientos.includes(m.id)
-  );
-
-  saveData(data);
-
-  ultimaImportacion = {
-    clienteId: null,
-    movimientos: []
-  };
-
-  render();
-  showToast("Importación deshecha correctamente");
-}
-
-/* =====================================================
-   LECTOR DE ARCHIVO EXCEL (GENÉRICO)
-===================================================== */
-
-function leerExcel(file, callback) {
   const reader = new FileReader();
 
   reader.onload = e => {
     const data = new Uint8Array(e.target.result);
     const workbook = XLSX.read(data, { type: "array" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const filas = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-    callback(filas);
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    const cliente = getCliente();
+    const movimientosImportados = [];
+
+    rows.forEach((r, i) => {
+      const concepto = (r.concepto || r.Concepto || "").trim();
+      const importe = normalizarImporte(r.importe || r.Importe);
+      const fecha = normalizarFecha(r.fecha || r.Fecha);
+
+      if (!concepto || !importe || !fecha) return;
+
+      const condicion = getCondicionActiva(fecha);
+      if (!condicion) return;
+
+      movimientosImportados.push({
+        id: crypto.randomUUID(),
+        tipo: "compra",
+        concepto,
+        importe,
+        fecha,
+        porcentaje: condicion.porcentaje,
+        provision: importe * condicion.porcentaje / 100
+      });
+    });
+
+    if (!movimientosImportados.length) {
+      showToast("No se pudo importar ninguna compra");
+      return;
+    }
+
+    cliente.movimientos.push(...movimientosImportados);
+    saveCliente(cliente);
+
+    ultimaImportacion = {
+      tipo: "compra",
+      clienteId: cliente.id,
+      movimientos: movimientosImportados.map(m => m.id)
+    };
+
+    render();
+    showToast(`Importadas ${movimientosImportados.length} compras`);
   };
 
   reader.readAsArrayBuffer(file);
+}
+
+/* =====================================================
+   IMPORTAR CARGOS
+===================================================== */
+
+function importarCargosExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    const data = new Uint8Array(e.target.result);
+    const workbook = XLSX.read(data, { type: "array" });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet);
+
+    const cliente = getCliente();
+    const movimientosImportados = [];
+
+    rows.forEach(r => {
+      const concepto = (r.concepto || r.Concepto || "").trim();
+      const importe = normalizarImporte(r.importe || r.Importe);
+      const fecha = normalizarFecha(r.fecha || r.Fecha);
+
+      if (!concepto || !importe || !fecha) return;
+
+      movimientosImportados.push({
+        id: crypto.randomUUID(),
+        tipo: "cargo",
+        concepto,
+        importe,
+        fecha
+      });
+    });
+
+    if (!movimientosImportados.length) {
+      showToast("No se pudo importar ningún cargo");
+      return;
+    }
+
+    cliente.movimientos.push(...movimientosImportados);
+    saveCliente(cliente);
+
+    ultimaImportacion = {
+      tipo: "cargo",
+      clienteId: cliente.id,
+      movimientos: movimientosImportados.map(m => m.id)
+    };
+
+    render();
+    showToast(`Importados ${movimientosImportados.length} cargos`);
+  };
+
+  reader.readAsArrayBuffer(file);
+}
+
+/* =====================================================
+   DESHACER IMPORTACIÓN
+===================================================== */
+
+function deshacerUltimaImportacion() {
+  if (!ultimaImportacion.movimientos.length) {
+    showToast("No hay importaciones para deshacer");
+    return;
+  }
+
+  const cliente = getCliente();
+
+  cliente.movimientos = cliente.movimientos.filter(
+    m => !ultimaImportacion.movimientos.includes(m.id)
+  );
+
+  saveCliente(cliente);
+
+  ultimaImportacion = {
+    tipo: null,
+    clienteId: null,
+    movimientos: []
+  };
+
+  render();
+  showToast("Importación deshecha correctamente");
 }
