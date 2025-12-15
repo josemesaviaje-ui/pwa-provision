@@ -1,48 +1,94 @@
-// js/migration.js
-import { agregar } from "./firestore.js";
+// js/migration.js - Versión con alertas para ver qué pasa
 
-// Solo se ejecuta si hay datos en localStorage y no se ha migrado ya
+import { agregar } from './firestore.js';
+
 export async function migrarDatosAntiguos() {
-  if (!localStorage.getItem('datosMigrados') && localStorage.getItem('clientes')) {
-    console.log("Migrando datos antiguos a Firestore...");
+  alert("🔄 Empezando comprobación de datos antiguos...");
 
-    // Migrar clientes
-    const clientes = JSON.parse(localStorage.getItem('clientes') || '[]');
-    for (const cliente of clientes) {
-      const nuevoId = await agregar('clientes', {
-        codigo: cliente.codigo,
-        nombre: cliente.nombre,
-        direccion: cliente.direccion || ''
-      });
-      // Ahora migrar todo lo relacionado con este cliente (compras, cargos, condiciones)
-      // Asumimos que tienes estructuras como compras_clienteId, etc.
-      // Ejemplo genérico (adapta según tu estructura actual):
-      const compras = JSON.parse(localStorage.getItem(`compras_${cliente.codigo}`) || '[]');
-      for (const compra of compras) {
-        await agregar('compras', {
-          clienteId: nuevoId.id || cliente.codigo,  // mejor usar el nuevo ID de Firestore
-          concepto: compra.concepto,
-          importe: compra.importe,
-          fecha: compra.fecha
-        });
-      }
-      // Repite para cargos, condiciones, etc.
-    }
+  const datosAntiguos = localStorage.getItem('pwa_provisiones_data');
 
-    localStorage.setItem('datosMigrados', 'true');
-    console.log("Migración completada");
-    alert("Datos migrados a la nube. Ahora se sincronizarán en todos tus dispositivos.");
-  }
-}
-
-// BOTÓN TEMPORAL - QUITAR DESPUÉS
-window.forzarMigracion = async function() {
-  if (!confirm("¿Subir todos tus datos antiguos a la nube ahora?\n\nEsto sincronizará todo con tu cuenta.")) {
+  if (!datosAntiguos) {
+    alert("ℹ️ No hay datos antiguos en localStorage. Nada que migrar.");
     return;
   }
 
-  // Forzar borrando la marca de migrado
-  localStorage.removeItem('datosMigrados');
+  if (localStorage.getItem('datosMigrados')) {
+    alert("ℹ️ Los datos ya fueron migrados antes.");
+    return;
+  }
 
+  alert("✅ Encontrados datos antiguos. Iniciando subida a la nube...\n\nEsto puede tardar unos segundos.");
+
+  try {
+    const dataAntigua = JSON.parse(datosAntiguos);
+
+    if (!dataAntigua.clientes || dataAntigua.clientes.length === 0) {
+      alert("ℹ️ No hay clientes para migrar.");
+      return;
+    }
+
+    let contador = 0;
+
+    for (const clienteAntiguo of dataAntigua.clientes) {
+      // Crear cliente
+      const clienteRef = await agregar('clientes', {
+        codigo: clienteAntiguo.codigo || '',
+        nombre: clienteAntiguo.nombre || '',
+        direccion: clienteAntiguo.direccion || ''
+      });
+
+      const nuevoClienteId = clienteRef.id;
+
+      // Migrar condiciones
+      if (clienteAntiguo.condiciones && clienteAntiguo.condiciones.length > 0) {
+        for (const cond of clienteAntiguo.condiciones) {
+          await agregar('condiciones', {
+            clienteId: nuevoClienteId,
+            porcentaje: cond.porcentaje,
+            fechaInicio: cond.fechaInicio,
+            fechaFin: cond.fechaFin
+          });
+          contador++;
+        }
+      }
+
+      // Migrar movimientos
+      if (clienteAntiguo.movimientos && clienteAntiguo.movimientos.length > 0) {
+        for (const mov of clienteAntiguo.movimientos) {
+          await agregar('movimientos', {
+            clienteId: nuevoClienteId,
+            tipo: mov.tipo,
+            concepto: mov.concepto,
+            importe: mov.importe,
+            fecha: mov.fecha,
+            porcentaje: mov.porcentaje || 0,
+            provision: mov.provision || 0
+          });
+          contador++;
+        }
+      }
+    }
+
+    // Marcar como migrado
+    localStorage.setItem('datosMigrados', 'true');
+
+    alert(`🎉 ¡MIGRACIÓN COMPLETADA!\n\nSe han subido todos tus datos a la nube.\nRecarga la app para verlos desde Firestore.\n\nAhora puedes usar la app en cualquier dispositivo con tu cuenta.`);
+
+    // Recargar automáticamente
+    location.reload();
+
+  } catch (error) {
+    console.error(error);
+    alert("❌ Error durante la migración:\n" + error.message + "\n\nRevisa tu conexión a internet e inténtalo de nuevo.");
+  }
+}
+
+// BOTÓN TEMPORAL
+window.forzarMigracion = async function() {
+  if (!confirm("¿Forzar la migración ahora?\n\nEsto subirá TODOS tus datos antiguos a la nube.")) {
+    return;
+  }
+
+  localStorage.removeItem('datosMigrados');  // Forzar aunque ya esté marcado
   await migrarDatosAntiguos();
 }
