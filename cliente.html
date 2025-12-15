@@ -67,6 +67,20 @@
     <button class="btn-primary" onclick="crearCompra()">Añadir compra</button>
   </div>
 
+<!-- IMPORTAR COMPRAS -->
+<div class="card">
+  <h3>Importar compras (Excel)</h3>
+
+  <input type="file" id="excelCompras" accept=".xlsx,.xls">
+  <button class="btn-primary" onclick="importarComprasExcel()">
+    Importar compras
+  </button>
+
+  <small>
+    Columnas requeridas: concepto | importe | fecha
+  </small>
+</div>
+
   <!-- CARGOS -->
   <div class="card">
     <h3>Nuevo cargo</h3>
@@ -113,6 +127,8 @@
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="js/import-excel.js"></script>
 
 </body>
 </html>
