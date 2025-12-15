@@ -3,57 +3,142 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - Gestión Provisión</title>
-  <link rel="stylesheet" href="css/styles.css">
+  <title>Login · Gestión de Provisión</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: var(--bg-color, #f5f5f5); /* Respeta tu tema claro/oscuro */
+    }
+    .login-card {
+      width: 90%;
+      max-width: 400px;
+      padding: 32px;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+    .login-card h2 {
+      margin-bottom: 24px;
+      color: var(--text-color);
+    }
+    .login-card img {
+      width: 80px;
+      margin-bottom: 16px;
+    }
+    .login-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .login-form input {
+      padding: 14px;
+      border: 1px solid var(--border-color, #ddd);
+      border-radius: 8px;
+      font-size: 16px;
+      background: var(--input-bg, #fff);
+      color: var(--text-color);
+    }
+    .login-form button {
+      padding: 14px;
+      background: #5fa8d3;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .login-form button:hover {
+      background: #4a89b8;
+    }
+    #error {
+      color: #e74c3c;
+      margin-top: 12px;
+      min-height: 24px;
+    }
+    .info-text {
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--text-secondary, #666);
+    }
+  </style>
 </head>
 <body>
-  <div class="login-container">
-    <h2>Gestión de Provisión</h2>
-    <form id="loginForm">
-      <input type="email" id="email" placeholder="Email" required>
-      <input type="password" id="password" placeholder="Contraseña" required>
-      <button type="submit">Entrar</button>
-    </form>
-    <p id="error" style="color:red; display:none;"></p>
-    <p>No tienes cuenta? Regístrate con el mismo botón (creará una nueva).</p>
-  </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<div class="login-card card">
+  <img src="assets/logo.png" alt="Logo Provisiones">
+  <h2>Gestión de Provisión</h2>
+  
+  <form id="loginForm" class="login-form">
+    <input type="email" id="email" placeholder="Correo electrónico" required>
+    <input type="password" id="password" placeholder="Contraseña" required>
+    <button type="submit">Entrar</button>
+  </form>
+  
+  <p id="error"></p>
+  
+  <p class="info-text">
+    ¿No tienes cuenta? Regístrate con el mismo botón (creará una nueva).
+  </p>
+</div>
 
-    const firebaseConfig = {
-  apiKey: "AIzaSyCc5Bo9fLAF0FR3m2m6RWYH2QsSvsztOik",
-  authDomain: "provisiones-pwa.firebaseapp.com",
-  projectId: "provisiones-pwa",
-  storageBucket: "provisiones-pwa.firebasestorage.app",
-  messagingSenderId: "4278805330",
-  appId: "1:4278805330:web:738dc43f624bad2fe3508b"
-};
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
+  const firebaseConfig = {
+    // Pega aquí tu config de Firebase (la misma que en auth.js)
+    apiKey: "TU_API_KEY",
+    authDomain: "TU_PROYECTO.firebaseapp.com",
+    projectId: "TU_PROYECTO",
+    storageBucket: "TU_PROYECTO.appspot.com",
+    messagingSenderId: "XXXXXXXXXXXX",
+    appId: "1:XXXXXXXXXXXX:web:XXXXXXXXXXXXXXXX"
+  };
 
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value;
-      const password = document.getElementById('password').value;
-      const error = document.getElementById('error');
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
 
-      try {
-        await signInWithEmailAndPassword(auth, email, password);
-        window.location.href = 'index.html';
-      } catch (err) {
-        // Si falla login, intenta registro
+  document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const error = document.getElementById('error');
+
+    error.textContent = '';
+    error.style.display = 'none';
+
+    try {
+      // Primero intenta login
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        // Si falla, intenta crear la cuenta
         try {
           await createUserWithEmailAndPassword(auth, email, password);
-          window.location.href = 'index.html';
         } catch (regErr) {
-          error.textContent = regErr.message;
+          error.textContent = 'Error: ' + (regErr.message || 'No se pudo crear la cuenta');
           error.style.display = 'block';
+          return;
         }
+      } else {
+        error.textContent = 'Error: ' + err.message;
+        error.style.display = 'block';
+        return;
       }
-    });
-  </script>
+    }
+
+    // Si llega aquí, login o registro exitoso
+    window.location.href = 'index.html';
+  });
+</script>
+
 </body>
 </html>
