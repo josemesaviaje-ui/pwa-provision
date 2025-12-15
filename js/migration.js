@@ -1,94 +1,66 @@
-// js/migration.js - Versión con alertas para ver qué pasa
+// js/migration.js - Solo botón manual simple
 
 import { agregar } from './firestore.js';
 
-export async function migrarDatosAntiguos() {
-  alert("🔄 Empezando comprobación de datos antiguos...");
+// BOTÓN MANUAL PARA SUBIR DATOS
+window.subirDatosALaNube = async function() {
+  if (!confirm("¿Subir TODOS tus datos actuales a la nube ahora?\n\nDespués podrás verlos en cualquier móvil o tablet con tu misma cuenta.")) {
+    return;
+  }
 
   const datosAntiguos = localStorage.getItem('pwa_provisiones_data');
 
   if (!datosAntiguos) {
-    alert("ℹ️ No hay datos antiguos en localStorage. Nada que migrar.");
+    alert("No hay datos en la app para subir. Nada que hacer.");
     return;
   }
 
-  if (localStorage.getItem('datosMigrados')) {
-    alert("ℹ️ Los datos ya fueron migrados antes.");
-    return;
-  }
-
-  alert("✅ Encontrados datos antiguos. Iniciando subida a la nube...\n\nEsto puede tardar unos segundos.");
+  alert("Subiendo datos a la nube... Espera unos segundos (no cierres la app).");
 
   try {
-    const dataAntigua = JSON.parse(datosAntiguos);
+    const data = JSON.parse(datosAntiguos);
 
-    if (!dataAntigua.clientes || dataAntigua.clientes.length === 0) {
-      alert("ℹ️ No hay clientes para migrar.");
-      return;
-    }
-
-    let contador = 0;
-
-    for (const clienteAntiguo of dataAntigua.clientes) {
-      // Crear cliente
+    for (const clienteAntiguo of data.clientes) {
+      // Crear cliente nuevo en la nube
       const clienteRef = await agregar('clientes', {
         codigo: clienteAntiguo.codigo || '',
         nombre: clienteAntiguo.nombre || '',
         direccion: clienteAntiguo.direccion || ''
       });
 
-      const nuevoClienteId = clienteRef.id;
+      const nuevoId = clienteRef.id;
 
-      // Migrar condiciones
-      if (clienteAntiguo.condiciones && clienteAntiguo.condiciones.length > 0) {
-        for (const cond of clienteAntiguo.condiciones) {
+      // Subir condiciones
+      if (clienteAntiguo.condiciones) {
+        for (const c of clienteAntiguo.condiciones) {
           await agregar('condiciones', {
-            clienteId: nuevoClienteId,
-            porcentaje: cond.porcentaje,
-            fechaInicio: cond.fechaInicio,
-            fechaFin: cond.fechaFin
+            clienteId: nuevoId,
+            porcentaje: c.porcentaje,
+            fechaInicio: c.fechaInicio,
+            fechaFin: c.fechaFin
           });
-          contador++;
         }
       }
 
-      // Migrar movimientos
-      if (clienteAntiguo.movimientos && clienteAntiguo.movimientos.length > 0) {
-        for (const mov of clienteAntiguo.movimientos) {
+      // Subir movimientos (compras y cargos)
+      if (clienteAntiguo.movimientos) {
+        for (const m of clienteAntiguo.movimientos) {
           await agregar('movimientos', {
-            clienteId: nuevoClienteId,
-            tipo: mov.tipo,
-            concepto: mov.concepto,
-            importe: mov.importe,
-            fecha: mov.fecha,
-            porcentaje: mov.porcentaje || 0,
-            provision: mov.provision || 0
+            clienteId: nuevoId,
+            tipo: m.tipo,
+            concepto: m.concepto,
+            importe: m.importe,
+            fecha: m.fecha,
+            porcentaje: m.porcentaje || 0,
+            provision: m.provision || 0
           });
-          contador++;
         }
       }
     }
 
-    // Marcar como migrado
-    localStorage.setItem('datosMigrados', 'true');
-
-    alert(`🎉 ¡MIGRACIÓN COMPLETADA!\n\nSe han subido todos tus datos a la nube.\nRecarga la app para verlos desde Firestore.\n\nAhora puedes usar la app en cualquier dispositivo con tu cuenta.`);
-
-    // Recargar automáticamente
-    location.reload();
+    alert("¡TODO SUBIDO A LA NUBE! 🎉\n\nAhora recarga la app en el móvil con tu misma cuenta y verás todos los datos.\n\nPuedes borrar este botón cuando quieras.");
 
   } catch (error) {
-    console.error(error);
-    alert("❌ Error durante la migración:\n" + error.message + "\n\nRevisa tu conexión a internet e inténtalo de nuevo.");
+    alert("Error al subir los datos: " + error.message + "\n\nAsegúrate de tener internet e inténtalo de nuevo.");
   }
-}
-
-// BOTÓN TEMPORAL
-window.forzarMigracion = async function() {
-  if (!confirm("¿Forzar la migración ahora?\n\nEsto subirá TODOS tus datos antiguos a la nube.")) {
-    return;
-  }
-
-  localStorage.removeItem('datosMigrados');  // Forzar aunque ya esté marcado
-  await migrarDatosAntiguos();
-}
+};
