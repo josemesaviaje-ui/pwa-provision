@@ -37,6 +37,15 @@
 
 <div class="container">
 
+<!-- BOTÓN TEMPORAL DE DIAGNÓSTICO FIRESTORE - BORRAR DESPUÉS -->
+<div class="card" style="background:#fff3e0; border:2px solid #ff9800; margin:20px; padding:20px; text-align:center;">
+  <strong>🔧 Diagnóstico Firestore (temporal)</strong><br><br>
+  <button class="btn-primary" style="font-size:1.2em; padding:12px 24px;" onclick="diagnosticoFirestore()">
+    MOSTRAR DATOS DE LA NUBE
+  </button>
+  <div id="diagnosticoResultado" style="margin-top:20px; text-align:left; font-size:0.9em;"></div>
+</div>
+
   <!-- ================= RESUMEN ================= -->
   <div class="grid">
     <div class="card">
@@ -81,16 +90,6 @@
 
 </div>
 
-<!-- BOTÓN PARA SUBIR DATOS A LA NUBE - PUÉDELO BORRAR DESPUÉS DE USAR -->
-<div class="card" style="background:#e3f2fd; border:2px solid #2196f3; margin:20px; padding:20px; text-align:center;">
-  <strong>☁️ Sincronizar datos con la nube</strong><br><br>
-  <button class="btn-primary" style="font-size:1.3em; padding:15px 30px;" onclick="subirDatosALaNube()">
-    SUBIR MIS DATOS A LA NUBE AHORA
-  </button>
-  <br><br>
-  <small>Usa este botón solo en la tablet donde tienes los datos.<br>
-  Una vez pulsado, podrás ver todo en el móvil con tu cuenta.</small>
-</div>
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
@@ -116,6 +115,7 @@
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
+<script type="module" src="js/diagnostico.js"></script>
 
 <!-- SERVICE WORKER -->
 <script>
