@@ -1,21 +1,21 @@
 /* =====================================================
-   CLIENTE DETAIL - Versión Firestore
+   CLIENTE DETAIL - Versión Firestore CORREGIDA
 ===================================================== */
 
-import { escuchar, agregar, actualizar, eliminar } from './firestore.js';
-import { getClientes } from './storage.js';  // Para cache de clientes (lista)
+import { agregar, actualizar, eliminar } from './firestore.js';
+import { db, collection, query, where, onSnapshot } from './firestore.js';  // ¡IMPORTANTE! Añadidos estos
 
 const params = new URLSearchParams(window.location.search);
-const clienteId = params.get("id");  // ID de Firestore
+const clienteId = params.get("id");
 
 let ultimoMovimientoEliminado = null;
 let timeoutDeshacerMovimiento = null;
 
-let clienteActual = null;         // El cliente completo (cargado de Firestore)
-let condicionesCliente = [];      // Array local de condiciones
-let movimientosCliente = [];      // Array local de movimientos
+let clienteActual = null;
+let condicionesCliente = [];
+let movimientosCliente = [];
 
-// Escuchas en tiempo real
+let unsubscribeCliente = null;
 let unsubscribeCondiciones = null;
 let unsubscribeMovimientos = null;
 
@@ -23,49 +23,50 @@ let unsubscribeMovimientos = null;
    CARGAR DATOS DEL CLIENTE
 ===================================================== */
 
-async function cargarDatosCliente() {
+function cargarDatosCliente() {
   if (!clienteId) {
     showToast("Cliente no encontrado");
     window.location.href = "clientes.html";
     return;
   }
 
-  // Escuchar el documento del cliente
-  const unsubscribeCliente = escuchar('clientes', async (lista) => {
-    clienteActual = lista.find(c => c.id === clienteId);
-    if (!clienteActual) {
+  // Escuchar el cliente específico
+  const qCliente = query(collection(db, "clientes"), where("id", "==", clienteId));
+  unsubscribeCliente = onSnapshot(qCliente, (snapshot) => {
+    if (snapshot.empty) {
       showToast("Cliente no encontrado");
       window.location.href = "clientes.html";
       return;
     }
-    renderDatosCliente();
+    snapshot.forEach((doc) => {
+      clienteActual = { id: doc.id, ...doc.data() };
+      renderDatosCliente();
+    });
   });
 
   // Escuchar condiciones del cliente
-  if (unsubscribeCondiciones) unsubscribeCondiciones();
-  unsubscribeCondiciones = onSnapshotQuery('condiciones', clienteId, (lista) => {
-    condicionesCliente = lista;
+  const qCond = query(collection(db, "condiciones"), where("clienteId", "==", clienteId));
+  unsubscribeCondiciones = onSnapshot(qCond, (snapshot) => {
+    condicionesCliente = [];
+    snapshot.forEach((doc) => {
+      condicionesCliente.push({ id: doc.id, ...doc.data() });
+    });
     renderCondiciones();
-    render();  // Recalcular saldo si afecta
+    render();
   });
 
   // Escuchar movimientos del cliente
-  if (unsubscribeMovimientos) unsubscribeMovimientos();
-  unsubscribeMovimientos = onSnapshotQuery('movimientos', clienteId, (lista) => {
-    movimientosCliente = lista.sort((a, b) => a.fecha.localeCompare(b.fecha));
+  const qMov = query(collection(db, "movimientos"), where("clienteId", "==", clienteId));
+  unsubscribeMovimientos = onSnapshot(qMov, (snapshot) => {
+    movimientosCliente = [];
+    snapshot.forEach((doc) => {
+      movimientosCliente.push({ id: doc.id, ...doc.data() });
+    });
+    movimientosCliente.sort((a, b) => a.fecha.localeCompare(b.fecha));
     renderMovimientos();
     renderGraficosCliente();
     document.getElementById("saldoCliente").innerText = calcularSaldo().toFixed(2) + " €";
-  });
-}
-
-// Función auxiliar para escuchar subcolecciones por clienteId
-function onSnapshotQuery(coleccion, clienteId, callback) {
-  const q = query(collection(db, coleccion), where("clienteId", "==", clienteId));
-  return onSnapshot(q, (snapshot) => {
-    const lista = [];
-    snapshot.forEach(doc => lista.push({ id: doc.id, ...doc.data() }));
-    callback(lista);
+    render();
   });
 }
 
@@ -93,19 +94,11 @@ async function guardarDatosCliente() {
     return;
   }
 
-  // Validar código único (entre todos los clientes)
-  const todosClientes = getClientes();
-  const existe = todosClientes.some(c => c.id !== clienteId && c.codigo?.toLowerCase() === nuevoCodigo.toLowerCase());
-  if (existe) {
-    showToast("Ya existe otro cliente con ese código");
-    return;
-  }
-
   try {
     await actualizar('clientes', clienteId, {
       codigo: nuevoCodigo,
       nombre,
-      direccion: direccion || ''
+      direccion
     });
     showToast("Datos actualizados");
   } catch (error) {
@@ -146,6 +139,7 @@ async function crearCondicion() {
     showToast("Condición añadida");
   } catch (error) {
     showToast("Error al guardar condición");
+    console.error(error);
   }
 }
 
@@ -177,7 +171,7 @@ function renderCondiciones() {
   condicionesCliente.forEach(c => {
     const hoy = new Date().toISOString().split("T")[0];
     const estado = hoy < c.fechaInicio ? "Pendiente" : hoy > c.fechaFin ? "Caducada" : "Activa";
-    const dias = Math.ceil((new Date(c.fechaFin) - new Date()) / (86400000));
+    const dias = Math.ceil((new Date(c.fechaFin) - new Date()) / 86400000);
 
     const badge = estado === "Activa" ? "badge-success" : estado === "Pendiente" ? "badge-warning" : "badge-danger";
     let aviso = estado === "Activa" && dias <= 15 ? `<br><span class="badge badge-warning">Caduca en ${dias} días</span>` : "";
@@ -236,6 +230,7 @@ async function crearCompra() {
     showToast("Compra añadida");
   } catch (error) {
     showToast("Error al añadir compra");
+    console.error(error);
   }
 }
 
@@ -268,6 +263,7 @@ async function crearCargo() {
     showToast("Cargo añadido");
   } catch (error) {
     showToast("Error al añadir cargo");
+    console.error(error);
   }
 }
 
@@ -315,9 +311,7 @@ async function deshacerEliminarMovimiento() {
 ===================================================== */
 
 function calcularSaldo() {
-  return movimientosCliente.reduce((s, m) => {
-    return m.tipo === "compra" ? s + m.provision : s - m.importe;
-  }, 0);
+  return movimientosCliente.reduce((s, m) => m.tipo === "compra" ? s + (m.provision || 0) : s - m.importe, 0);
 }
 
 function renderMovimientos() {
@@ -335,7 +329,7 @@ function renderMovimientos() {
     div.innerHTML = `
       <strong>${m.concepto}</strong><br>
       Fecha: ${m.fecha}<br>
-      ${m.tipo === "compra" ? `Importe: ${m.importe} €<br>Provisión: ${m.provision.toFixed(2)} €` : `Cargo: -${m.importe} €`}
+      ${m.tipo === "compra" ? `Importe: ${m.importe} €<br>Provisión: ${(m.provision || 0).toFixed(2)} €` : `Cargo: -${m.importe} €`}
       <br><br>
       <button class="btn-danger" onclick="eliminarMovimiento('${m.id}')">Eliminar</button>
     `;
@@ -344,11 +338,9 @@ function renderMovimientos() {
 }
 
 function renderGraficosCliente() {
-  // Tu código de gráficos sigue igual, solo usa movimientosCliente
-  // (lo dejo igual que tenías, solo cambia la fuente de datos)
   if (!movimientosCliente.length) return;
 
-  const movs = [...movimientosCliente];
+  const movs = [...movimientosCliente].sort((a, b) => a.fecha.localeCompare(b.fecha));
 
   let saldo = 0;
   const labels = [];
@@ -357,42 +349,4 @@ function renderGraficosCliente() {
   let cargos = 0;
 
   movs.forEach(m => {
-    if (m.tipo === "compra") {
-      saldo += m.provision;
-      compras += m.provision;
-    }
-    if (m.tipo === "cargo") {
-      saldo -= m.importe;
-      cargos += m.importe;
-    }
-    labels.push(m.fecha);
-    dataSaldo.push(saldo);
-  });
-
-  // ... (el resto del código de Chart.js igual que tenías)
-  // Solo asegúrate de que los canvas existan en el HTML
-}
-
-/* =====================================================
-   UTILS
-===================================================== */
-
-function limpiarInputs() {
-  document.querySelectorAll("input:not([type='date'])").forEach(i => i.value = "");
-  document.querySelectorAll("input[type='date']").forEach(i => i.value = "");
-}
-
-function render() {
-  renderDatosCliente();
-  renderCondiciones();
-  renderMovimientos();
-  renderGraficosCliente();
-  document.getElementById("saldoCliente").innerText = calcularSaldo().toFixed(2) + " €";
-}
-
-/* =====================================================
-   INIT - Cuando la página carga
-===================================================== */
-
-cargarDatosCliente();
-render();
+    if (m.tipo === "compra")

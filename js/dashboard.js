@@ -1,5 +1,5 @@
 /* =========================
-   DASHBOARD - Versión Firestore
+   DASHBOARD - Versión Firestore DEFINITIVA
 ========================= */
 
 const AVISO_DIAS = 15;
@@ -7,12 +7,12 @@ const AVISO_DIAS = 15;
 let chartClientes = null;
 let chartMovimientos = null;
 
-// Variables globales para los datos
+// Variables globales
 let todosClientes = [];
 let todosMovimientos = [];
 let todasCondiciones = [];
 
-// Escuchas en tiempo real
+// Escuchas
 let unsubscribeClientes = null;
 let unsubscribeMovimientos = null;
 let unsubscribeCondiciones = null;
@@ -23,6 +23,8 @@ let unsubscribeCondiciones = null;
 
 function animateValue(id, start, end, duration = 600, suffix = "") {
   const el = document.getElementById(id);
+  if (!el) return;
+
   const range = end - start;
   const startTime = performance.now();
 
@@ -41,26 +43,43 @@ function animateValue(id, start, end, duration = 600, suffix = "") {
 }
 
 /* =========================
-   CARGAR TODOS LOS DATOS Y ESCUCHAR CAMBIOS
+   INICIAR ESCUCHAS EN TIEMPO REAL
 ========================= */
 
+import { db, collection, onSnapshot } from './firestore.js';
+
 function iniciarDashboard() {
-  // Escuchar todos los clientes del usuario
-  unsubscribeClientes = escuchar('clientes', (lista) => {
-    todosClientes = lista;
+  // Escuchar clientes
+  unsubscribeClientes = onSnapshot(collection(db, "clientes"), (snapshot) => {
+    todosClientes = [];
+    snapshot.forEach((doc) => {
+      todosClientes.push({ id: doc.id, ...doc.data() });
+    });
     calcularDashboard();
+  }, (error) => {
+    console.error("Error clientes:", error);
   });
 
-  // Escuchar TODOS los movimientos (de todos los clientes)
-  unsubscribeMovimientos = escuchar('movimientos', (lista) => {
-    todosMovimientos = lista;
+  // Escuchar movimientos
+  unsubscribeMovimientos = onSnapshot(collection(db, "movimientos"), (snapshot) => {
+    todosMovimientos = [];
+    snapshot.forEach((doc) => {
+      todosMovimientos.push({ id: doc.id, ...doc.data() });
+    });
     calcularDashboard();
+  }, (error) => {
+    console.error("Error movimientos:", error);
   });
 
-  // Escuchar TODAS las condiciones
-  unsubscribeCondiciones = escuchar('condiciones', (lista) => {
-    todasCondiciones = lista;
+  // Escuchar condiciones
+  unsubscribeCondiciones = onSnapshot(collection(db, "condiciones"), (snapshot) => {
+    todasCondiciones = [];
+    snapshot.forEach((doc) => {
+      todasCondiciones.push({ id: doc.id, ...doc.data() });
+    });
     calcularDashboard();
+  }, (error) => {
+    console.error("Error condiciones:", error);
   });
 }
 
@@ -76,17 +95,16 @@ function calcularDashboard() {
   const labelsClientes = [];
   const saldosClientes = [];
 
-  // Recorrer todos los clientes
   todosClientes.forEach(cliente => {
-    // Filtrar movimientos de este cliente
     const movimientosCliente = todosMovimientos.filter(m => m.clienteId === cliente.id);
 
     let saldoCliente = 0;
 
     movimientosCliente.forEach(m => {
       if (m.tipo === "compra") {
-        saldoCliente += m.provision;
-        totalGenerado += m.provision;
+        const provision = m.provision || 0;
+        saldoCliente += provision;
+        totalGenerado += provision;
       }
       if (m.tipo === "cargo") {
         saldoCliente -= m.importe;
@@ -95,16 +113,17 @@ function calcularDashboard() {
     });
 
     saldoTotal += saldoCliente;
-    labelsClientes.push(cliente.nombre);
+    labelsClientes.push(cliente.nombre || "Sin nombre");
     saldosClientes.push(saldoCliente);
   });
 
-  // Animar contadores
-  animateValue("saldoTotal", 0, saldoTotal, 700, " €");
-  animateValue("totalGenerado", 0, totalGenerado, 700, " €");
-  animateValue("totalConsumido", 0, totalConsumido, 700, " €");
-
-  document.getElementById("totalClientes").innerText = todosClientes.length;
+  // Contadores
+  if (document.getElementById("saldoTotal")) animateValue("saldoTotal", 0, saldoTotal, 700, " €");
+  if (document.getElementById("totalGenerado")) animateValue("totalGenerado", 0, totalGenerado, 700, " €");
+  if (document.getElementById("totalConsumido")) animateValue("totalConsumido", 0, totalConsumido, 700, " €");
+  if (document.getElementById("totalClientes")) {
+    document.getElementById("totalClientes").innerText = todosClientes.length;
+  }
 
   renderGraficoClientes(labelsClientes, saldosClientes);
   renderGraficoMovimientos(totalGenerado, totalConsumido);
@@ -116,9 +135,12 @@ function calcularDashboard() {
 ========================= */
 
 function renderGraficoClientes(labels, data) {
+  const canvas = document.getElementById("graficoClientes");
+  if (!canvas) return;
+
   if (chartClientes) chartClientes.destroy();
 
-  chartClientes = new Chart(document.getElementById("graficoClientes"), {
+  chartClientes = new Chart(canvas, {
     type: "bar",
     data: {
       labels,
@@ -138,9 +160,12 @@ function renderGraficoClientes(labels, data) {
 }
 
 function renderGraficoMovimientos(generado, consumido) {
+  const canvas = document.getElementById("graficoMovimientos");
+  if (!canvas) return;
+
   if (chartMovimientos) chartMovimientos.destroy();
 
-  chartMovimientos = new Chart(document.getElementById("graficoMovimientos"), {
+  chartMovimientos = new Chart(canvas, {
     type: "doughnut",
     data: {
       labels: ["Generado", "Consumido"],
@@ -159,18 +184,19 @@ function renderGraficoMovimientos(generado, consumido) {
 }
 
 /* =========================
-   ALERTAS CONDICIONES PRÓXIMAS A CADUCAR
+   ALERTAS
 ========================= */
 
 function renderAlertas() {
   const cont = document.getElementById("alertasCondiciones");
+  if (!cont) return;
+
   cont.innerHTML = "";
 
   const hoy = new Date();
   let hayAlertas = false;
 
   todosClientes.forEach(cliente => {
-    // Filtrar condiciones de este cliente
     const condicionesCliente = todasCondiciones.filter(c => c.clienteId === cliente.id);
 
     condicionesCliente.forEach(cond => {
@@ -200,7 +226,7 @@ function renderAlertas() {
 }
 
 /* =========================
-   INIT - Cuando carga la página
+   INIT
 ========================= */
 
 iniciarDashboard();
