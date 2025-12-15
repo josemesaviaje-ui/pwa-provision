@@ -37,14 +37,59 @@
 
 <div class="container">
 
-<!-- BOTÓN TEMPORAL DE DIAGNÓSTICO FIRESTORE - BORRAR DESPUÉS -->
+<!-- DIAGNÓSTICO FIRESTORE DIRECTO - TEMPORAL -->
 <div class="card" style="background:#fff3e0; border:2px solid #ff9800; margin:20px; padding:20px; text-align:center;">
-  <strong>🔧 Diagnóstico Firestore (temporal)</strong><br><br>
-  <button class="btn-primary" style="font-size:1.2em; padding:12px 24px;" onclick="diagnosticoFirestore()">
+  <strong>🔧 Diagnóstico Firestore</strong><br><br>
+  <button class="btn-primary" style="font-size:1.2em; padding:12px 24px;" id="btnDiagnostico">
     MOSTRAR DATOS DE LA NUBE
   </button>
   <div id="diagnosticoResultado" style="margin-top:20px; text-align:left; font-size:0.9em;"></div>
 </div>
+
+<script type="module">
+  import { db, collection, getDocs } from './firestore.js';
+
+  document.getElementById('btnDiagnostico').addEventListener('click', async () => {
+    const resultado = document.getElementById('diagnosticoResultado');
+    resultado.innerHTML = "Conectando a Firestore...";
+
+    try {
+      // Clientes
+      const snapClientes = await getDocs(collection(db, "clientes"));
+      const clientes = [];
+      snapClientes.forEach(doc => {
+        const data = doc.data();
+        clientes.push(data.nombre || "Sin nombre");
+      });
+
+      // Movimientos
+      const snapMov = await getDocs(collection(db, "movimientos"));
+      const numMov = snapMov.size;
+
+      // Condiciones
+      const snapCond = await getDocs(collection(db, "condiciones"));
+      const numCond = snapCond.size;
+
+      resultado.innerHTML = `
+        <strong>✅ Conexión OK</strong><br><br>
+        Clientes encontrados: <strong>${clientes.length}</strong><br>
+        ${clientes.join("<br>") || "Ninguno"}
+        <br><br>
+        Movimientos: <strong>${numMov}</strong><br>
+        Condiciones: <strong>${numCond}</strong><br><br>
+        Si ves nombres de clientes → los datos están en la nube.<br>
+        Recarga la app para verlos en el dashboard.
+      `;
+
+    } catch (error) {
+      resultado.innerHTML = `
+        <strong>❌ Error:</strong><br>
+        ${error.message}<br><br>
+        Causa probable: No estás logueado o problema de internet.
+      `;
+    }
+  });
+</script>
 
   <!-- ================= RESUMEN ================= -->
   <div class="grid">
@@ -115,7 +160,6 @@
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
-<script type="module" src="js/diagnostico.js"></script>
 
 <!-- SERVICE WORKER -->
 <script>
