@@ -21,10 +21,10 @@
       <small>Gestión profesional de provisiones</small>
     </div>
   </div>
-  <div style="display: flex; align-items: center; gap: 12px;">
+  <div style="display:flex; align-items:center; gap:12px;">
     <button id="themeToggle">🌙</button>
-    <!-- Botón nuevo de cerrar sesión -->
-    <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
+    <button id="btnLogout" title="Cerrar sesión"
+      style="background:none; border:none; font-size:1.8em; cursor:pointer;">
       🚪
     </button>
   </div>
@@ -76,34 +76,21 @@
   <!-- IMPORTAR COMPRAS -->
   <div class="card">
     <h3>Importar compras (Excel)</h3>
-
     <input type="file" id="excelCompras" accept=".xlsx,.xls">
     <button class="btn-primary" onclick="importarComprasExcel()">
       Importar compras
     </button>
-
-    <small>
-      Columnas requeridas: concepto | importe | fecha
-    </small>
+    <small>Columnas requeridas: concepto | importe | fecha</small>
   </div>
 
   <!-- IMPORTAR CARGOS -->
   <div class="card">
     <h3>Importar cargos (Excel)</h3>
-
-    <input
-      type="file"
-      id="importCargosFile"
-      accept=".xlsx,.xls,.csv"
-    >
-
+    <input type="file" id="importCargosFile" accept=".xlsx,.xls,.csv">
     <button class="btn-danger" onclick="importarCargos()">
       Importar cargos
     </button>
-
-    <small>
-      Columnas requeridas: concepto | importe | fecha
-    </small>
+    <small>Columnas requeridas: concepto | importe | fecha</small>
   </div>
 
   <button class="btn-danger" onclick="deshacerUltimaImportacion()">
@@ -149,32 +136,46 @@
   </a>
 </nav>
 
-<!-- SCRIPTS -->
+<!-- ================= SCRIPTS ================= -->
+
+<!-- Firebase -->
 <script type="module" src="js/cloud.js"></script>
-<script src="js/condiciones.js"></script>
-<script src="js/navigation.js"></script>
-<script src="js/theme.js"></script>
-<script src="js/toast.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-<script src="js/import-excel.js"></script>
 
-<!-- ==================== PROTECCIÓN Y LOGOUT ==================== -->
+<!-- 🔥 INICIO ESCUCHA FIRESTORE (CLAVE) -->
 <script type="module">
-  import { protegerPagina } from './js/auth.js';
-  import { cerrarSesion } from './js/auth.js';
+  import { iniciarEscuchaClientes } from "./js/storage.js";
 
-  // Proteger la página (redirige a login si no hay usuario)
-  protegerPagina();
+  iniciarEscuchaClientes();
 
-  // Asociar el botón de logout cuando el DOM esté listo
-  document.addEventListener('DOMContentLoaded', () => {
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) {
-      btnLogout.addEventListener('click', cerrarSesion);
+  document.addEventListener("clientes-updated", () => {
+    if (typeof render === "function") {
+      render();
     }
   });
 </script>
-<!-- ============================================================= -->
+
+<!-- Lógica cliente (NO TOCADA) -->
+<script src="js/condiciones.js"></script>
+
+<script src="js/navigation.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/toast.js"></script>
+
+<!-- Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="js/import-excel.js"></script>
+
+<!-- PROTECCIÓN + LOGOUT -->
+<script type="module">
+  import { protegerPagina, cerrarSesion } from './js/auth.js';
+
+  protegerPagina();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const btnLogout = document.getElementById('btnLogout');
+    if (btnLogout) btnLogout.addEventListener('click', cerrarSesion);
+  });
+</script>
 
 </body>
 </html>
