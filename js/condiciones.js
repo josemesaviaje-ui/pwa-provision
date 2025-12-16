@@ -1,5 +1,5 @@
 /* =====================================================
-   CLIENTE DETAIL - Firestore (VERSIÓN FINAL CORREGIDA)
+   CLIENTE DETAIL - Firestore (VERSIÓN FINAL FUNCIONAL)
 ===================================================== */
 
 import {
@@ -18,11 +18,40 @@ import {
 } from './firestore.js';
 
 /* =====================================================
-   ESTADO GLOBAL
+   PARAMS
 ===================================================== */
 
 const params = new URLSearchParams(window.location.search);
 const clienteId = params.get("id");
+
+if (!clienteId) {
+  showToast("Cliente no encontrado");
+  window.location.href = "clientes.html";
+}
+
+/* =====================================================
+   ELEMENTOS DOM  🔴 OBLIGATORIO
+===================================================== */
+
+const clienteCodigo = document.getElementById("clienteCodigo");
+const clienteNombre = document.getElementById("clienteNombre");
+const clienteDireccion = document.getElementById("clienteDireccion");
+
+const porcentajeInput = document.getElementById("porcentaje");
+const fechaInicio = document.getElementById("fechaInicio");
+const fechaFin = document.getElementById("fechaFin");
+
+const conceptoCompra = document.getElementById("conceptoCompra");
+const importeCompra = document.getElementById("importeCompra");
+const fechaCompra = document.getElementById("fechaCompra");
+
+const conceptoCargo = document.getElementById("conceptoCargo");
+const importeCargo = document.getElementById("importeCargo");
+const fechaCargo = document.getElementById("fechaCargo");
+
+/* =====================================================
+   ESTADO
+===================================================== */
 
 let clienteActual = null;
 let condicionesCliente = [];
@@ -32,22 +61,17 @@ let ultimoMovimientoEliminado = null;
 let timeoutDeshacerMovimiento = null;
 
 /* =====================================================
-   CARGAR DATOS
+   FIRESTORE LISTENERS
 ===================================================== */
 
-if (!clienteId) {
-  showToast("Cliente no encontrado");
-  window.location.href = "clientes.html";
-}
-
 /* ---------- CLIENTE ---------- */
-onSnapshot(doc(db, "clientes", clienteId), (docSnap) => {
-  if (!docSnap.exists()) {
+onSnapshot(doc(db, "clientes", clienteId), (snap) => {
+  if (!snap.exists()) {
     showToast("Cliente no encontrado");
     window.location.href = "clientes.html";
     return;
   }
-  clienteActual = { id: docSnap.id, ...docSnap.data() };
+  clienteActual = { id: snap.id, ...snap.data() };
   renderDatosCliente();
 });
 
@@ -109,7 +133,7 @@ window.crearCondicion = async function () {
   const fin = fechaFin.value;
 
   if (!porcentaje || porcentaje <= 0 || !inicio || !fin || inicio > fin) {
-    showToast("Datos incorrectos");
+    showToast("Datos de condición incorrectos");
     return;
   }
 
@@ -166,7 +190,9 @@ function renderCondiciones() {
       <strong>${c.porcentaje}%</strong><br>
       ${c.fechaInicio} → ${c.fechaFin}<br>
       <span class="badge">${estado}</span><br><br>
-      <button class="btn-danger" onclick="eliminarCondicion('${c.id}')">Eliminar</button>
+      <button class="btn-danger" onclick="eliminarCondicion('${c.id}')">
+        Eliminar
+      </button>
     `;
     cont.appendChild(div);
   });
@@ -179,7 +205,7 @@ function getCondicionActiva(fecha) {
 }
 
 /* =====================================================
-   COMPRAS Y CARGOS
+   COMPRAS
 ===================================================== */
 
 window.crearCompra = async function () {
@@ -188,7 +214,7 @@ window.crearCompra = async function () {
   const fecha = fechaCompra.value;
 
   if (!concepto || importe <= 0 || !fecha) {
-    showToast("Datos incorrectos");
+    showToast("Datos de compra incorrectos");
     return;
   }
 
@@ -217,13 +243,17 @@ window.crearCompra = async function () {
   showToast("Compra añadida");
 };
 
+/* =====================================================
+   CARGOS
+===================================================== */
+
 window.crearCargo = async function () {
   const concepto = conceptoCargo.value.trim();
   const importe = Number(importeCargo.value);
   const fecha = fechaCargo.value;
 
   if (!concepto || importe <= 0 || !fecha) {
-    showToast("Datos incorrectos");
+    showToast("Datos de cargo incorrectos");
     return;
   }
 
@@ -284,7 +314,9 @@ function renderMovimientos() {
         : `Cargo: -${m.importe} €`
       }
       <br><br>
-      <button class="btn-danger" onclick="eliminarMovimiento('${m.id}')">Eliminar</button>
+      <button class="btn-danger" onclick="eliminarMovimiento('${m.id}')">
+        Eliminar
+      </button>
     `;
     cont.appendChild(div);
   });
@@ -295,7 +327,9 @@ function renderMovimientos() {
 ===================================================== */
 
 function calcularSaldo() {
-  return movimientosCliente.reduce((s, m) =>
-    m.tipo === "compra" ? s + (m.provision || 0) : s - m.importe
+  return movimientosCliente.reduce(
+    (s, m) => m.tipo === "compra"
+      ? s + (m.provision || 0)
+      : s - m.importe
   , 0);
 }
