@@ -1,13 +1,15 @@
-// sw.js - Versión simple sin caché agresiva
+// sw.js - Versión desactivada temporalmente para forzar carga fresca
 
-self.addEventListener('install', e => {
+// No hace nada - permite que la app cargue siempre la versión nueva
+self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-self.addEventListener('activate', e => {
+self.addEventListener('activate', event => {
   self.clients.claim();
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(fetch(e.request));
+// No cachea nada - siempre va a la red
+self.addEventListener('fetch', event => {
+  event.respondWith(fetch(event.request));
 });
