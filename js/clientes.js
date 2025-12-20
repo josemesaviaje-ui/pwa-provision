@@ -1,42 +1,31 @@
 /* =========================
-   CLIENTES - Versión Firestore DEFINITIVA
+   CLIENTES - Versión Firestore DEFINITIVA (con creación funcionando)
 ========================= */
 
 import { agregar, eliminar } from './firestore.js';
-import { db, collection, query, where, onSnapshot } from './firestore.js';  // Importamos lo necesario
+import { db, collection, onSnapshot } from './firestore.js';
 
-let ultimoClienteEliminado = null;
-let timeoutDeshacer = null;
+let clientes = [];
 
-let clientes = [];  // Array global con los clientes cargados de Firestore
-
-let unsubscribeClientes = null;  // Para cancelar la escucha si es necesario
+let unsubscribeClientes = null;
 
 /* =========================
-   CARGAR CLIENTES EN TIEMPO REAL
+   INICIAR ESCUCHA EN TIEMPO REAL
 ========================= */
 
 function iniciarEscuchaClientes() {
-  const q = query(collection(db, "clientes"));
-
-  unsubscribeClientes = onSnapshot(q, (snapshot) => {
+  unsubscribeClientes = onSnapshot(collection(db, "clientes"), (snapshot) => {
     clientes = [];
     snapshot.forEach((doc) => {
       clientes.push({ id: doc.id, ...doc.data() });
     });
-
-    // Ordenar por nombre
     clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
-
     renderClientes();
-  }, (error) => {
-    console.error("Error cargando clientes:", error);
-    showToast("Error al cargar clientes");
   });
 }
 
 /* =========================
-   CREAR CLIENTE
+   CREAR CLIENTE (CORREGIDO)
 ========================= */
 
 async function crearCliente() {
@@ -53,7 +42,7 @@ async function crearCliente() {
     return;
   }
 
-  // Validar código único
+  // Validar código único (usando la lista actual)
   if (clientes.some(c => c.codigo?.toLowerCase() === codigo.toLowerCase())) {
     showToast("Ya existe un cliente con ese código");
     return;
@@ -66,16 +55,16 @@ async function crearCliente() {
       direccion: direccion || ''
     });
 
-    // Limpiar formulario
+    // Limpiar inputs
     codigoInput.value = "";
     nombreInput.value = "";
     direccionInput.value = "";
 
     showToast("Cliente creado correctamente");
-    // No necesitas renderClientes() → el listener lo hace solo
+    // El listener actualizará la lista automáticamente
 
   } catch (error) {
-    showToast("Error al crear cliente");
+    showToast("Error al crear el cliente");
     console.error(error);
   }
 }
@@ -90,11 +79,10 @@ function renderClientes() {
 
   const texto = document.getElementById("buscarCliente")?.value.toLowerCase() || "";
 
-  const clientesFiltrados = clientes
-    .filter(c =>
-      c.nombre.toLowerCase().includes(texto) ||
-      (c.codigo && c.codigo.toLowerCase().includes(texto))
-    );
+  const clientesFiltrados = clientes.filter(c =>
+    c.nombre.toLowerCase().includes(texto) ||
+    (c.codigo && c.codigo.toLowerCase().includes(texto))
+  );
 
   cont.innerHTML = "";
 
@@ -117,13 +105,8 @@ function renderClientes() {
       <small>Código: ${cliente.codigo || "—"}</small><br>
       ${cliente.direccion ? `<small>${cliente.direccion}</small><br>` : ""}
       <br>
-
-      <a href="cliente.html?id=${cliente.id}">
-        ➡️ Ver cliente
-      </a><br><br>
-
-      <button class="btn-danger"
-        onclick="eliminarCliente('${cliente.id}')">
+      <a href="cliente.html?id=${cliente.id}">➡️ Ver cliente</a><br><br>
+      <button class="btn-danger" onclick="eliminarCliente('${cliente.id}')">
         Eliminar
       </button>
     `;
@@ -137,55 +120,15 @@ function renderClientes() {
 ========================= */
 
 async function eliminarCliente(id) {
-  const cliente = clientes.find(c => c.id === id);
-  if (!cliente) return;
-
-  ultimoClienteEliminado = cliente;
+  if (!confirm("¿Eliminar este cliente y todos sus datos?")) return;
 
   try {
     await eliminar('clientes', id);
-
-    showToast("Cliente eliminado · Deshacer");
-
-    clearTimeout(timeoutDeshacer);
-    timeoutDeshacer = setTimeout(() => {
-      ultimoClienteEliminado = null;
-    }, 4000);
-
+    showToast("Cliente eliminado");
   } catch (error) {
-    showToast("Error al eliminar cliente");
-    console.error(error);
+    showToast("Error al eliminar");
   }
 }
-
-async function deshacerEliminarCliente() {
-  if (!ultimoClienteEliminado) return;
-
-  try {
-    await agregar('clientes', {
-      codigo: ultimoClienteEliminado.codigo,
-      nombre: ultimoClienteEliminado.nombre,
-      direccion: ultimoClienteEliminado.direccion || ''
-    });
-
-    ultimoClienteEliminado = null;
-    showToast("Cliente restaurado");
-
-  } catch (error) {
-    showToast("Error al restaurar");
-    console.error(error);
-  }
-}
-
-/* =========================
-   CLICK TOAST PARA DESHACER
-========================= */
-
-document.addEventListener("click", e => {
-  if (e.target.classList.contains("toast") && e.target.textContent.includes("Deshacer")) {
-    deshacerEliminarCliente();
-  }
-});
 
 /* =========================
    INIT
