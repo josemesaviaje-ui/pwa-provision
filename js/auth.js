@@ -1,8 +1,8 @@
 // js/auth.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyCc5Bo9fLAF0FR3m2m6RWYH2QsSvsztOik",
   authDomain: "provisiones-pwa.firebaseapp.com",
   projectId: "provisiones-pwa",
@@ -11,27 +11,18 @@ const firebaseConfig = {
   appId: "1:4278805330:web:738dc43f624bad2fe3508b"
 };
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
-window.usuarioActual = null;
+export let usuarioActual = null;
 
-export function protegerPagina(callbackDespuesLogin = null) {
-  onAuthStateChanged(auth, (user) => {
-    if (user) {
-      window.usuarioActual = user;
-      console.log("Logueado:", user.uid);
-      if (callbackDespuesLogin) callbackDespuesLogin();
-    } else {
-      window.location.href = 'login.html';
-    }
-  });
-}
+signInAnonymously(auth);
 
-export function cerrarSesion() {
-  signOut(auth).then(() => {
-    window.location.href = 'login.html';
-  });
-}
-
-export { auth, app };
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    usuarioActual = user;
+    window.usuarioActual = user; // accesible global
+    console.log("Auth OK:", user.uid);
+    document.dispatchEvent(new Event("auth-ready"));
+  }
+});

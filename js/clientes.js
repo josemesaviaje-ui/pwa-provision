@@ -1,15 +1,48 @@
 /* =========================
-   CLIENTES
+   CLIENTES (FIRESTORE REALTIME)
 ========================= */
 
+import {
+  db,
+  collection,
+  agregar,
+  eliminar
+} from "./firestore.js";
+
+import {
+  query,
+  orderBy,
+  onSnapshot,
+  where
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+let clientesCache = [];
 let ultimoClienteEliminado = null;
 let timeoutDeshacer = null;
+
+/* =========================
+   ESCUCHAR CLIENTES (TIEMPO REAL)
+========================= */
+
+const q = query(
+  collection(db, "clientes"),
+  where("usuarioId", "==", window.usuarioActual.uid),
+  orderBy("nombre")
+);
+
+onSnapshot(q, snapshot => {
+  clientesCache = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data()
+  }));
+  renderClientes();
+});
 
 /* =========================
    CREAR CLIENTE
 ========================= */
 
-function crearCliente() {
+window.crearCliente = async function () {
   const codigoInput = document.getElementById("codigoCliente");
   const nombreInput = document.getElementById("nombreCliente");
   const direccionInput = document.getElementById("direccionCliente");
@@ -28,32 +61,27 @@ function crearCliente() {
     return;
   }
 
-  const clientes = getClientes();
-
-  // VALIDAR CÓDIGO ÚNICO
-  if (clientes.some(c => c.codigo?.toLowerCase() === codigo.toLowerCase())) {
+  if (
+    clientesCache.some(
+      c => c.codigo?.toLowerCase() === codigo.toLowerCase()
+    )
+  ) {
     showToast("Ya existe un cliente con ese código");
     return;
   }
 
-  const cliente = {
-    id: crypto.randomUUID(),
+  await agregar("clientes", {
     codigo,
     nombre,
-    direccion,
-    condiciones: [],
-    movimientos: []
-  };
-
-  addCliente(cliente);
+    direccion
+  });
 
   codigoInput.value = "";
   nombreInput.value = "";
   direccionInput.value = "";
 
-  renderClientes();
   showToast("Cliente creado");
-}
+};
 
 /* =========================
    RENDER CLIENTES
@@ -61,16 +89,15 @@ function crearCliente() {
 
 function renderClientes() {
   const cont = document.getElementById("listaClientes");
+  if (!cont) return;
 
   const texto =
     document.getElementById("buscarCliente")?.value.toLowerCase() || "";
 
-  const clientes = getClientes()
-    .filter(c =>
-      c.nombre.toLowerCase().includes(texto) ||
-      (c.codigo && c.codigo.toLowerCase().includes(texto))
-    )
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  const clientes = clientesCache.filter(c =>
+    c.nombre.toLowerCase().includes(texto) ||
+    (c.codigo && c.codigo.toLowerCase().includes(texto))
+  );
 
   cont.innerHTML = "";
 
@@ -78,7 +105,7 @@ function renderClientes() {
     cont.innerHTML = `
       <div class="empty-state">
         <span>👥</span>
-        No hay clientes que coincidan
+        No hay clientes
       </div>
     `;
     return;
@@ -112,36 +139,36 @@ function renderClientes() {
    ELIMINAR + DESHACER
 ========================= */
 
-function eliminarCliente(id) {
-  const clientes = getClientes();
-  const cliente = clientes.find(c => c.id === id);
+window.eliminarCliente = async function (id) {
+  const cliente = clientesCache.find(c => c.id === id);
   if (!cliente) return;
 
   ultimoClienteEliminado = cliente;
 
-  deleteCliente(id);
-  renderClientes();
-
+  await eliminar("clientes", id);
   showToast("Cliente eliminado · Deshacer");
 
   clearTimeout(timeoutDeshacer);
   timeoutDeshacer = setTimeout(() => {
     ultimoClienteEliminado = null;
   }, 4000);
-}
+};
 
-function deshacerEliminarCliente() {
+window.deshacerEliminarCliente = async function () {
   if (!ultimoClienteEliminado) return;
 
-  addCliente(ultimoClienteEliminado);
-  ultimoClienteEliminado = null;
+  await agregar("clientes", {
+    codigo: ultimoClienteEliminado.codigo,
+    nombre: ultimoClienteEliminado.nombre,
+    direccion: ultimoClienteEliminado.direccion
+  });
 
-  renderClientes();
+  ultimoClienteEliminado = null;
   showToast("Cliente restaurado");
-}
+};
 
 /* =========================
-   CLICK TOAST
+   CLICK EN TOAST
 ========================= */
 
 document.addEventListener("click", e => {
@@ -152,6 +179,3 @@ document.addEventListener("click", e => {
     deshacerEliminarCliente();
   }
 });
-
-/* INIT */
-renderClientes();

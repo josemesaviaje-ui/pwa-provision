@@ -1,144 +1,118 @@
-/* =====================================================
-   PARAMS / ESTADO GLOBAL
-===================================================== */
+// js/condiciones.js
+import { crear, eliminar, escuchar, actualizar } from "./firestore.js";
 
-const params = new URLSearchParams(window.location.search);
+const params = new URLSearchParams(location.search);
 const clienteId = params.get("id");
 
+let cliente = null;
+let condiciones = [];
+let movimientos = [];
 let ultimoMovimientoEliminado = null;
 let timeoutDeshacerMovimiento = null;
 
-let filtroTipoMovimiento = "todos";
+/* =========================
+   ESCUCHAR FIRESTORE
+========================= */
 
-let chartEvolucionCliente = null;
-let chartTiposCliente = null;
+document.addEventListener("auth-ready", () => {
+  escuchar("clientes", [], lista => {
+    cliente = lista.find(c => c.id === clienteId);
+    if (cliente) renderCliente();
+  });
 
-// CIERRE CONTABLE (opcional)
-const FECHA_CIERRE = null; // ej: "2024-12-31"
+  escuchar("condiciones", [
+    ["clienteId", "==", clienteId]
+  ], lista => {
+    condiciones = lista;
+    renderCondiciones();
+  });
 
-/* =====================================================
-   CLIENTE
-===================================================== */
+  escuchar("movimientos", [
+    ["clienteId", "==", clienteId]
+  ], lista => {
+    movimientos = lista.sort((a, b) => a.fecha.localeCompare(b.fecha));
+    renderMovimientos();
+    renderSaldo();
+  });
+});
 
-function getCliente() {
-  return getData().clientes.find(c => c.id === clienteId);
-}
+/* =========================
+   RENDER DATOS CLIENTE
+========================= */
 
-function saveCliente(cliente) {
-  const data = getData();
-  const idx = data.clientes.findIndex(c => c.id === cliente.id);
-  data.clientes[idx] = cliente;
-  saveData(data);
-}
-
-/* =====================================================
-   VALIDACIONES
-===================================================== */
-
-function haySolapamiento(nueva) {
-  const cliente = getCliente();
-  return cliente.condiciones.some(c =>
-    !(nueva.fechaFin < c.fechaInicio || nueva.fechaInicio > c.fechaFin)
-  );
-}
-
-function diasParaCaducar(cond) {
-  const hoy = new Date();
-  const fin = new Date(cond.fechaFin);
-  return Math.ceil((fin - hoy) / (1000 * 60 * 60 * 24));
-}
-
-/* =====================================================
-   DATOS CLIENTE (EDICIÓN)
-===================================================== */
-
-function renderDatosCliente() {
-  const cliente = getCliente();
-
+function renderCliente() {
+  if (!cliente) return;
   document.getElementById("clienteCodigo").value = cliente.codigo || "";
   document.getElementById("clienteNombre").value = cliente.nombre || "";
   document.getElementById("clienteDireccion").value = cliente.direccion || "";
 }
 
-function guardarDatosCliente() {
-  const cliente = getCliente();
+window.guardarDatosCliente = async function () {
+  if (!cliente) return;
+  const codigo = document.getElementById("clienteCodigo").value.trim();
+  const nombre = document.getElementById("clienteNombre").value.trim();
+  const direccion = document.getElementById("clienteDireccion").value.trim();
 
-  const nuevoCodigo =
-    document.getElementById("clienteCodigo").value.trim();
-  const nombre =
-    document.getElementById("clienteNombre").value.trim();
-  const direccion =
-    document.getElementById("clienteDireccion").value.trim();
+  if (!codigo || !nombre) return alert("Código y nombre son obligatorios");
 
-  if (!nuevoCodigo) {
-    showToast("El código del cliente es obligatorio");
-    return;
-  }
+  await actualizar("clientes", cliente.id, { codigo, nombre, direccion });
+  alert("Datos actualizados");
+};
 
-  if (!nombre) {
-    showToast("El nombre del cliente es obligatorio");
-    return;
-  }
+/* =========================
+   CREAR CONDICIONES / MOVIMIENTOS
+========================= */
 
-  // VALIDAR CÓDIGO ÚNICO
-  const existe = getData().clientes.some(c =>
-    c.id !== cliente.id &&
-    c.codigo &&
-    c.codigo.toLowerCase() === nuevoCodigo.toLowerCase()
-  );
-
-  if (existe) {
-    showToast("Ya existe otro cliente con ese código");
-    return;
-  }
-
-  cliente.codigo = nuevoCodigo;
-  cliente.nombre = nombre;
-  cliente.direccion = direccion;
-
-  saveCliente(cliente);
-  showToast("Datos del cliente actualizados");
-}
-
-/* =====================================================
-   CONDICIONES
-===================================================== */
-
-function crearCondicion() {
-  const porcentaje = Number(document.getElementById("porcentaje").value);
-  const inicio = document.getElementById("fechaInicio").value;
-  const fin = document.getElementById("fechaFin").value;
-
-  if (!porcentaje || porcentaje <= 0 || !inicio || !fin) {
-    showToast("Datos de condición incorrectos");
-    return;
-  }
-
-  if (inicio > fin) {
-    showToast("La fecha inicio no puede ser mayor que la final");
-    return;
-  }
-
+window.crearCondicion = function () {
   const nueva = {
-    id: crypto.randomUUID(),
-    porcentaje,
-    fechaInicio: inicio,
-    fechaFin: fin
+    clienteId,
+    porcentaje: Number(document.getElementById("porcentaje").value),
+    fechaInicio: document.getElementById("fechaInicio").value,
+    fechaFin: document.getElementById("fechaFin").value
   };
 
-  if (haySolapamiento(nueva)) {
-    showToast("La condición se solapa con otra existente");
-    return;
+  if (!nueva.porcentaje || !nueva.fechaInicio || !nueva.fechaFin || nueva.fechaInicio > nueva.fechaFin) {
+    return alert("Datos incorrectos");
   }
 
-  const cliente = getCliente();
-  cliente.condiciones.push(nueva);
+  if (condiciones.some(c => !(nueva.fechaFin < c.fechaInicio || nueva.fechaInicio > c.fechaFin))) {
+    return alert("La condición se solapa con otra");
+  }
 
-  saveCliente(cliente);
-  limpiarInputs();
-  render();
-  showToast("Condición añadida");
-}
+  crear("condiciones", nueva);
+};
+
+window.crearCompra = function () {
+  const fecha = document.getElementById("fechaCompra").value;
+  const condicion = condiciones.find(c => fecha >= c.fechaInicio && fecha <= c.fechaFin);
+  if (!condicion) return alert("No hay condición activa");
+
+  const importe = Number(document.getElementById("importeCompra").value);
+
+  crear("movimientos", {
+    clienteId,
+    tipo: "compra",
+    concepto: document.getElementById("conceptoCompra").value,
+    importe,
+    fecha,
+    porcentaje: condicion.porcentaje,
+    provision: importe * condicion.porcentaje / 100
+  });
+};
+
+window.crearCargo = function () {
+  crear("movimientos", {
+    clienteId,
+    tipo: "cargo",
+    concepto: document.getElementById("conceptoCargo").value,
+    importe: Number(document.getElementById("importeCargo").value),
+    fecha: document.getElementById("fechaCargo").value
+  });
+};
+
+/* =========================
+   RENDER CONDICIONES
+========================= */
 
 function estadoCondicion(c) {
   const hoy = new Date().toISOString().split("T")[0];
@@ -148,330 +122,81 @@ function estadoCondicion(c) {
 }
 
 function renderCondiciones() {
-  const cliente = getCliente();
   const cont = document.getElementById("listaCondiciones");
   cont.innerHTML = "";
-
-  if (!cliente.condiciones.length) {
-    cont.innerHTML = `
-      <div class="empty-state">
-        <span>📅</span>
-        No hay condiciones
-      </div>
-    `;
+  if (!condiciones.length) {
+    cont.innerHTML = "<div class='empty-state'>No hay condiciones</div>";
     return;
   }
 
-  cliente.condiciones.forEach(c => {
-    const estado = estadoCondicion(c);
-    const dias = diasParaCaducar(c);
-
-    const badge =
-      estado === "Activa" ? "badge-success" :
-      estado === "Pendiente" ? "badge-warning" :
-      "badge-danger";
-
-    let aviso = "";
-    if (estado === "Activa" && dias <= 15) {
-      aviso = `<br><span class="badge badge-warning">
-                Caduca en ${dias} días
-               </span>`;
-    }
-
+  condiciones.forEach(c => {
     const div = document.createElement("div");
     div.className = "card";
+    const estado = estadoCondicion(c);
     div.innerHTML = `
       <strong>${c.porcentaje}%</strong><br>
       ${c.fechaInicio} → ${c.fechaFin}<br>
-      <span class="badge ${badge}">${estado}</span>
-      ${aviso}
+      <span class="badge">${estado}</span><br>
+      <button class="btn-danger" onclick="eliminarCondicion('${c.id}')">Eliminar</button>
     `;
     cont.appendChild(div);
   });
 }
 
-/* =====================================================
-   CONDICIÓN ACTIVA
-===================================================== */
+window.eliminarCondicion = function (id) {
+  if (confirm("¿Eliminar condición?")) eliminar("condiciones", id);
+};
 
-function getCondicionActiva(fecha) {
-  return getCliente().condiciones.find(c =>
-    fecha >= c.fechaInicio && fecha <= c.fechaFin
-  );
-}
-
-/* =====================================================
-   COMPRAS
-===================================================== */
-
-function crearCompra() {
-  const concepto = document.getElementById("conceptoCompra").value.trim();
-  const importe = Number(document.getElementById("importeCompra").value);
-  const fecha = document.getElementById("fechaCompra").value;
-  const hoy = new Date().toISOString().split("T")[0];
-
-  if (!concepto || importe <= 0 || !fecha) {
-    showToast("Datos de compra incorrectos");
-    return;
-  }
-
-  if (fecha > hoy) {
-    showToast("La fecha no puede ser futura");
-    return;
-  }
-
-  if (FECHA_CIERRE && fecha <= FECHA_CIERRE) {
-    showToast("Periodo cerrado, no se permiten cambios");
-    return;
-  }
-
-  const cliente = getCliente();
-  const condicion = getCondicionActiva(fecha);
-
-  if (!condicion) {
-    showToast("No hay condición válida para esa fecha");
-    return;
-  }
-
-  cliente.movimientos.push({
-    id: crypto.randomUUID(),
-    tipo: "compra",
-    concepto,
-    importe,
-    fecha,
-    porcentaje: condicion.porcentaje,
-    provision: importe * condicion.porcentaje / 100
-  });
-
-  saveCliente(cliente);
-  limpiarInputs();
-  render();
-  showToast("Compra añadida");
-}
-
-/* =====================================================
-   CARGOS
-===================================================== */
-
-function crearCargo() {
-  const concepto = document.getElementById("conceptoCargo").value.trim();
-  const importe = Number(document.getElementById("importeCargo").value);
-  const fecha = document.getElementById("fechaCargo").value;
-  const hoy = new Date().toISOString().split("T")[0];
-
-  if (!concepto || importe <= 0 || !fecha) {
-    showToast("Datos de cargo incorrectos");
-    return;
-  }
-
-  if (fecha > hoy) {
-    showToast("La fecha no puede ser futura");
-    return;
-  }
-
-  if (FECHA_CIERRE && fecha <= FECHA_CIERRE) {
-    showToast("Periodo cerrado, no se permiten cambios");
-    return;
-  }
-
-  const saldoActual = calcularSaldo();
-  if (saldoActual - importe < 0) {
-    showToast("Este cargo dejaría el saldo en negativo");
-    return;
-  }
-
-  const cliente = getCliente();
-  cliente.movimientos.push({
-    id: crypto.randomUUID(),
-    tipo: "cargo",
-    concepto,
-    importe,
-    fecha
-  });
-
-  saveCliente(cliente);
-  limpiarInputs();
-  render();
-  showToast("Cargo añadido");
-}
-
-/* =====================================================
-   SALDO
-===================================================== */
-
-function calcularSaldo() {
-  return getCliente().movimientos.reduce((s, m) => {
-    if (m.tipo === "compra") return s + m.provision;
-    if (m.tipo === "cargo") return s - m.importe;
-    return s;
-  }, 0);
-}
-
-/* =====================================================
-   MOVIMIENTOS
-===================================================== */
+/* =========================
+   RENDER MOVIMIENTOS
+========================= */
 
 function renderMovimientos() {
-  const cliente = getCliente();
   const cont = document.getElementById("listaMovimientos");
   cont.innerHTML = "";
-
-  if (!cliente.movimientos.length) {
-    cont.innerHTML = `
-      <div class="empty-state">
-        <span>💼</span>
-        No hay movimientos
-      </div>
-    `;
+  if (!movimientos.length) {
+    cont.innerHTML = "<div class='empty-state'>No hay movimientos</div>";
     return;
   }
 
-  cliente.movimientos.forEach(m => {
+  movimientos.forEach(m => {
     const div = document.createElement("div");
     div.className = "card";
     div.innerHTML = `
       <strong>${m.concepto}</strong><br>
-      Fecha: ${m.fecha}<br>
-      ${
-        m.tipo === "compra"
-          ? `Importe: ${m.importe} €<br>
-             Provisión: ${m.provision.toFixed(2)} €`
-          : `Cargo: -${m.importe} €`
-      }
-      <br><br>
-      <button class="btn-danger"
-        onclick="eliminarMovimiento('${m.id}')">
-        Eliminar
-      </button>
+      ${m.fecha}<br>
+      ${m.tipo === "compra" ? `Provisión: ${m.provision.toFixed(2)} €` : `Cargo: -${m.importe} €`}<br>
+      <button class="btn-danger" onclick="eliminarMovimiento('${m.id}')">Eliminar</button>
     `;
     cont.appendChild(div);
   });
 }
 
-/* =====================================================
+/* =========================
+   SALDO
+========================= */
+
+function renderSaldo() {
+  const saldo = movimientos.reduce((s, m) => m.tipo === "compra" ? s + (m.provision || 0) : s - m.importe, 0);
+  document.getElementById("saldoCliente").innerText = saldo.toFixed(2) + " €";
+}
+
+/* =========================
    ELIMINAR + DESHACER
-===================================================== */
+========================= */
 
-function eliminarMovimiento(id) {
-  const cliente = getCliente();
-  const idx = cliente.movimientos.findIndex(m => m.id === id);
-  if (idx === -1) return;
-
-  ultimoMovimientoEliminado = cliente.movimientos[idx];
-  cliente.movimientos.splice(idx, 1);
-
-  saveCliente(cliente);
-  render();
-
-  showToast("Movimiento eliminado · Deshacer");
+window.eliminarMovimiento = function (id) {
+  ultimoMovimientoEliminado = movimientos.find(m => m.id === id);
+  eliminar("movimientos", id);
 
   clearTimeout(timeoutDeshacerMovimiento);
   timeoutDeshacerMovimiento = setTimeout(() => {
     ultimoMovimientoEliminado = null;
   }, 4000);
-}
+};
 
-function deshacerEliminarMovimiento() {
+window.deshacerEliminarMovimiento = function () {
   if (!ultimoMovimientoEliminado) return;
-
-  const cliente = getCliente();
-  cliente.movimientos.push(ultimoMovimientoEliminado);
-  saveCliente(cliente);
-
+  crear("movimientos", ultimoMovimientoEliminado);
   ultimoMovimientoEliminado = null;
-  render();
-  showToast("Movimiento restaurado");
-}
-
-/* =====================================================
-   GRÁFICOS
-===================================================== */
-
-function renderGraficosCliente() {
-  const cliente = getCliente();
-  if (!cliente.movimientos.length) return;
-
-  const movs = [...cliente.movimientos].sort((a, b) =>
-    a.fecha.localeCompare(b.fecha)
-  );
-
-  let saldo = 0;
-  const labels = [];
-  const dataSaldo = [];
-  let compras = 0;
-  let cargos = 0;
-
-  movs.forEach(m => {
-    if (m.tipo === "compra") {
-      saldo += m.provision;
-      compras += m.provision;
-    }
-    if (m.tipo === "cargo") {
-      saldo -= m.importe;
-      cargos += m.importe;
-    }
-    labels.push(m.fecha);
-    dataSaldo.push(saldo);
-  });
-
-  if (chartEvolucionCliente) chartEvolucionCliente.destroy();
-  chartEvolucionCliente = new Chart(
-    document.getElementById("graficoEvolucionCliente"),
-    {
-      type: "line",
-      data: {
-        labels,
-        datasets: [{
-          data: dataSaldo,
-          borderColor: "#5fa8d3",
-          backgroundColor: "rgba(95,168,211,.15)",
-          fill: true,
-          tension: 0.35
-        }]
-      },
-      options: { plugins: { legend: { display: false } } }
-    }
-  );
-
-  if (chartTiposCliente) chartTiposCliente.destroy();
-  chartTiposCliente = new Chart(
-    document.getElementById("graficoTiposCliente"),
-    {
-      type: "doughnut",
-      data: {
-        labels: ["Compras", "Cargos"],
-        datasets: [{
-          data: [compras, cargos],
-          backgroundColor: ["#95d5b2", "#ff8fa3"],
-          borderWidth: 0
-        }]
-      },
-      options: {
-        cutout: "65%",
-        plugins: { legend: { position: "bottom" } }
-      }
-    }
-  );
-}
-
-/* =====================================================
-   UTILS / RENDER
-===================================================== */
-
-function limpiarInputs() {
-  document.querySelectorAll("input").forEach(i => i.value = "");
-}
-
-function render() {
-  renderDatosCliente();
-
-  document.getElementById("saldoCliente").innerText =
-    calcularSaldo().toFixed(2) + " €";
-
-  renderCondiciones();
-  renderMovimientos();
-  renderGraficosCliente();
-}
-
-/* INIT */
-render();
+};
