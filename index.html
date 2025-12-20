@@ -28,7 +28,6 @@
 
   <div style="display: flex; align-items: center; gap: 12px;">
     <button id="themeToggle">🌙</button>
-    <!-- Botón nuevo de cerrar sesión -->
     <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
       🚪
     </button>
@@ -37,8 +36,7 @@
 
 <div class="container">
 
-
-  <!-- ================= RESUMEN ================= -->
+  <!-- RESUMEN -->
   <div class="grid">
     <div class="card">
       <h3>💰 Saldo total</h3>
@@ -61,7 +59,7 @@
     </div>
   </div>
 
-  <!-- ================= GRÁFICOS ================= -->
+  <!-- GRÁFICOS -->
   <div class="grid" style="margin-top:20px">
     <div class="card">
       <h3>Provisión por cliente</h3>
@@ -74,7 +72,7 @@
     </div>
   </div>
 
-  <!-- ================= ALERTAS ================= -->
+  <!-- ALERTAS -->
   <div class="card" style="margin-top:20px">
     <h3>⚠️ Condiciones próximas a caducar</h3>
     <div id="alertasCondiciones"></div>
@@ -82,28 +80,24 @@
 
 </div>
 
-
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <a href="index.html" data-page="dashboard">
+  <a href="index.html">
     <span class="material-icons-outlined">dashboard</span>
     <small>Dashboard</small>
   </a>
-
-  <a href="clientes.html" data-page="clientes">
+  <a href="clientes.html">
     <span class="material-icons-outlined">groups</span>
     <small>Clientes</small>
   </a>
-
-  <a href="informes.html" data-page="informes">
+  <a href="informes.html">
     <span class="material-icons-outlined">description</span>
     <small>Informes</small>
   </a>
 </nav>
 
 <!-- SCRIPTS -->
-<script type="module" src="js/cloud.js"></script>
-<script src="js/dashboard.js"></script>
+<script type="module" src="js/dashboard.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
@@ -111,11 +105,11 @@
 <!-- SERVICE WORKER -->
 <script>
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js");  <!-- Asegúrate de que el nombre sea correcto: sw.js o service-worker.js -->
+    navigator.serviceWorker.register("sw.js");
   }
 </script>
 
-<!-- PROTECCIÓN + LOGOUT -->
+<!-- PROTECCIÓN Y LOGOUT -->
 <script type="module">
   import { protegerPagina, cerrarSesion } from './js/auth.js';
 
@@ -123,7 +117,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) btnLogout.addEventListener('click', cerrarSesion);
+    if (btnLogout) {
+      btnLogout.addEventListener('click', cerrarSesion);
+    }
   });
 </script>
 
