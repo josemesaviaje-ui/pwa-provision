@@ -36,6 +36,17 @@
 
 <div class="container">
 
+  <!-- BOTÓN TEMPORAL PARA SUBIR DATOS A LA NUBE -->
+  <div class="card" style="background:#fff3cd; border:2px solid #ffc107; margin:20px; padding:20px; text-align:center;">
+    <strong>☁️ Subir datos a la nube (una sola vez)</strong><br><br>
+    <button class="btn-primary" style="font-size:1.3em; padding:15px 30px;" onclick="subirDatosALaNube()">
+      SUBIR MIS DATOS A LA NUBE AHORA
+    </button>
+    <br><br>
+    <small>Usa este botón en la tablet donde tienes los datos locales.<br>
+    Después podrás verlos en cualquier dispositivo con tu cuenta.</small>
+  </div>
+
   <!-- RESUMEN -->
   <div class="grid">
     <div class="card">
@@ -122,6 +133,9 @@
     }
   });
 </script>
+
+<!-- CARGA DE MIGRACIÓN -->
+<script type="module" src="js/migration.js"></script>
 
 </body>
 </html>
