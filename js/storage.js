@@ -1,61 +1,27 @@
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+const STORAGE_KEY = "pwa_provisiones_data";
 
-import { db } from "./cloud.js";
-
-/* =========================
-   CACHE
-========================= */
-
-let clientesCache = [];
-
-/* =========================
-   ESCUCHA REALTIME
-========================= */
-
-export function iniciarEscuchaClientes() {
-  const ref = collection(db, "clientes");
-
-  onSnapshot(ref, snap => {
-    clientesCache = snap.docs.map(d => ({
-      id: d.id,
-      ...d.data()
-    }));
-
-    document.dispatchEvent(new Event("clientes-updated"));
-  });
+function getData() {
+  const data = localStorage.getItem(STORAGE_KEY);
+  return data ? JSON.parse(data) : { clientes: [] };
 }
 
-export function getClientes() {
-  return clientesCache;
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-export function getClienteById(id) {
-  return clientesCache.find(c => c.id === id);
+/* CLIENTES */
+function getClientes() {
+  return getData().clientes;
 }
 
-/* =========================
-   CRUD CLIENTES
-========================= */
-
-export async function crearCliente(cliente) {
-  await addDoc(collection(db, "clientes"), {
-    ...cliente,
-    condiciones: [],
-    movimientos: []
-  });
+function addCliente(cliente) {
+  const data = getData();
+  data.clientes.push(cliente);
+  saveData(data);
 }
 
-export async function actualizarCliente(id, data) {
-  await updateDoc(doc(db, "clientes", id), data);
-}
-
-export async function eliminarCliente(id) {
-  await deleteDoc(doc(db, "clientes", id));
+function deleteCliente(id) {
+  const data = getData();
+  data.clientes = data.clientes.filter(c => c.id !== id);
+  saveData(data);
 }

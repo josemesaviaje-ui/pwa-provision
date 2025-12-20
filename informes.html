@@ -3,7 +3,7 @@
 <head>
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#8ecae6">
+<meta name="theme-color" content="#8ecae6">
   <meta charset="UTF-8">
   <title>Informes</title>
   <link rel="stylesheet" href="css/main.css">
@@ -19,51 +19,45 @@
     </div>
   </div>
 
-  <div style="display: flex; align-items: center; gap: 12px;">
-    <button id="themeToggle">🌙</button>
-    <!-- Botón nuevo de cerrar sesión -->
-    <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
-      🚪
-    </button>
-  </div>
+  <button id="themeToggle">🌙</button>
 </header>
 
 <div class="container">
 
   <!-- FILTROS -->
-  <div class="card">
-    <h3>Filtros del informe</h3>
+<div class="card">
+  <h3>Filtros del informe</h3>
 
-    <label>Cliente</label>
-    <select id="clienteFiltro">
-      <option value="all">Todos los clientes</option>
-    </select>
+  <label>Cliente</label>
+  <select id="clienteFiltro">
+    <option value="all">Todos los clientes</option>
+  </select>
 
-    <label>Fecha desde</label>
-    <input type="date" id="fechaDesde">
+  <label>Fecha desde</label>
+  <input type="date" id="fechaDesde">
 
-    <label>Fecha hasta</label>
-    <input type="date" id="fechaHasta">
+  <label>Fecha hasta</label>
+  <input type="date" id="fechaHasta">
 
-    <button class="btn-primary" onclick="generarInforme()">
-      Generar informe
-    </button>
+  <button class="btn-primary" onclick="generarInforme()">
+    Generar informe
+  </button>
 
-    <button onclick="exportarExcel()">
-      Exportar Excel
-    </button>
+  <button onclick="exportarExcel()">
+    Exportar Excel
+  </button>
 
-    <button onclick="exportarPDF()">
-      Exportar PDF
-    </button>
-  </div>
+  <button onclick="exportarPDF()">
+    Exportar PDF
+  </button>
+</div>
 
-  <div class="card">
-    <strong>Filtros rápidos</strong><br><br>
-    <button onclick="setPeriodo(7)">Últimos 7 días</button>
-    <button onclick="setPeriodo(30)">Últimos 30 días</button>
-    <button onclick="setPeriodo(90)">Últimos 90 días</button>
-  </div>
+<div class="card">
+  <strong>Filtros rápidos</strong><br><br>
+  <button onclick="setPeriodo(7)">Últimos 7 días</button>
+  <button onclick="setPeriodo(30)">Últimos 30 días</button>
+  <button onclick="setPeriodo(90)">Últimos 90 días</button>
+</div>
 
   <!-- RESULTADO -->
   <div class="card">
@@ -73,7 +67,14 @@
 
 </div>
 
-<!-- NAV -->
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.29/dist/jspdf.plugin.autotable.min.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/informes.js"></script>
+<script src="js/exportExcel.js"></script>
+
 <nav class="bottom-nav">
   <a href="index.html" data-page="dashboard">
     <span class="material-icons-outlined">dashboard</span>
@@ -91,10 +92,7 @@
   </a>
 </nav>
 
-<!-- SCRIPTS -->
-<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.29/dist/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="js/storage.js"></script>
 <script type="module" src="js/cloud.js"></script>
 <script src="js/informes.js"></script>
 <script src="js/exportExcel.js"></script>
@@ -102,24 +100,6 @@
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
-
-<!-- ==================== PROTECCIÓN Y LOGOUT ==================== -->
-<script type="module">
-  import { protegerPagina } from './js/auth.js';
-  import { cerrarSesion } from './js/auth.js';
-
-  // Proteger la página (redirige a login si no hay usuario)
-  protegerPagina();
-
-  // Asociar el botón de logout cuando el DOM esté listo
-  document.addEventListener('DOMContentLoaded', () => {
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) {
-      btnLogout.addEventListener('click', cerrarSesion);
-    }
-  });
-</script>
-<!-- ============================================================= -->
 
 </body>
 </html>

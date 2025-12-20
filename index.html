@@ -26,28 +26,12 @@
     </div>
   </div>
 
-  <div style="display: flex; align-items: center; gap: 12px;">
-    <button id="themeToggle">🌙</button>
-    <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
-      🚪
-    </button>
-  </div>
+  <button id="themeToggle">🌙</button>
 </header>
 
 <div class="container">
 
-  <!-- BOTÓN TEMPORAL PARA SUBIR DATOS A LA NUBE -->
-  <div class="card" style="background:#fff3cd; border:2px solid #ffc107; margin:20px; padding:20px; text-align:center;">
-    <strong>☁️ Subir datos a la nube (una sola vez)</strong><br><br>
-    <button class="btn-primary" style="font-size:1.3em; padding:15px 30px;" onclick="subirDatosALaNube()">
-      SUBIR MIS DATOS A LA NUBE AHORA
-    </button>
-    <br><br>
-    <small>Usa este botón en la tablet donde tienes los datos locales.<br>
-    Después podrás verlos en cualquier dispositivo con tu cuenta.</small>
-  </div>
-
-  <!-- RESUMEN -->
+  <!-- ================= RESUMEN ================= -->
   <div class="grid">
     <div class="card">
       <h3>💰 Saldo total</h3>
@@ -70,7 +54,7 @@
     </div>
   </div>
 
-  <!-- GRÁFICOS -->
+  <!-- ================= GRÁFICOS ================= -->
   <div class="grid" style="margin-top:20px">
     <div class="card">
       <h3>Provisión por cliente</h3>
@@ -83,7 +67,7 @@
     </div>
   </div>
 
-  <!-- ALERTAS -->
+  <!-- ================= ALERTAS ================= -->
   <div class="card" style="margin-top:20px">
     <h3>⚠️ Condiciones próximas a caducar</h3>
     <div id="alertasCondiciones"></div>
@@ -91,51 +75,40 @@
 
 </div>
 
-<!-- BOTTOM NAV -->
+<!-- SCRIPTS -->
+<script src="js/storage.js"></script>
+<script src="js/dashboard.js"></script>
+
+<!-- SERVICE WORKER -->
+<script>
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("service-worker.js");
+}
+</script>
+
 <nav class="bottom-nav">
-  <a href="index.html">
+  <a href="index.html" data-page="dashboard">
     <span class="material-icons-outlined">dashboard</span>
     <small>Dashboard</small>
   </a>
-  <a href="clientes.html">
+
+  <a href="clientes.html" data-page="clientes">
     <span class="material-icons-outlined">groups</span>
     <small>Clientes</small>
   </a>
-  <a href="informes.html">
+
+  <a href="informes.html" data-page="informes">
     <span class="material-icons-outlined">description</span>
     <small>Informes</small>
   </a>
 </nav>
 
-<!-- SCRIPTS -->
-<script type="module" src="js/dashboard.js"></script>
+<script src="js/storage.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script src="js/dashboard.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
-
-<!-- SERVICE WORKER -->
-<script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js");
-  }
-</script>
-
-<!-- PROTECCIÓN Y LOGOUT -->
-<script type="module">
-  import { protegerPagina, cerrarSesion } from './js/auth.js';
-
-  protegerPagina();
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) {
-      btnLogout.addEventListener('click', cerrarSesion);
-    }
-  });
-</script>
-
-<!-- CARGA DE MIGRACIÓN -->
-<script type="module" src="js/migration.js"></script>
 
 </body>
 </html>

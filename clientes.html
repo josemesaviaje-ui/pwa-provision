@@ -22,12 +22,7 @@
     </div>
   </div>
 
-  <div style="display: flex; align-items: center; gap: 12px;">
-    <button id="themeToggle">🌙</button>
-    <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
-      🚪
-    </button>
-  </div>
+  <button id="themeToggle">🌙</button>
 </header>
 
 <div class="container">
@@ -36,18 +31,39 @@
   <div class="card">
     <h3>Nuevo cliente</h3>
 
-    <input type="text" id="codigoCliente" placeholder="Código de cliente (único)">
-    <input type="text" id="nombreCliente" placeholder="Nombre del cliente">
-    <input type="text" id="direccionCliente" placeholder="Dirección (opcional)">
+    <input
+      type="text"
+      id="codigoCliente"
+      placeholder="Código de cliente (único)"
+    >
 
-    <button class="btn-primary" onclick="crearCliente()">Añadir cliente</button>
+    <input
+      type="text"
+      id="nombreCliente"
+      placeholder="Nombre del cliente"
+    >
+
+    <input
+      type="text"
+      id="direccionCliente"
+      placeholder="Dirección (opcional)"
+    >
+
+    <button class="btn-primary" onclick="crearCliente()">
+      Añadir cliente
+    </button>
   </div>
 
   <!-- LISTADO -->
   <div class="card">
     <h3>Clientes</h3>
 
-    <input type="text" id="buscarCliente" placeholder="Buscar por nombre o código..." oninput="renderClientes()">
+    <input
+      type="text"
+      id="buscarCliente"
+      placeholder="Buscar por nombre o código..."
+      oninput="renderClientes()"
+    >
 
     <div id="listaClientes"></div>
   </div>
@@ -56,46 +72,29 @@
 
 <!-- BOTTOM NAV -->
 <nav class="bottom-nav">
-  <a href="index.html">
+  <a href="index.html" data-page="dashboard">
     <span class="material-icons-outlined">dashboard</span>
     <small>Dashboard</small>
   </a>
-  <a href="clientes.html">
+
+  <a href="clientes.html" data-page="clientes">
     <span class="material-icons-outlined">groups</span>
     <small>Clientes</small>
   </a>
-  <a href="informes.html">
+
+  <a href="informes.html" data-page="informes">
     <span class="material-icons-outlined">description</span>
     <small>Informes</small>
   </a>
 </nav>
 
 <!-- SCRIPTS -->
-<script type="module" src="js/clientes.js"></script>
+<script src="js/storage.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script src="js/clientes.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
-
-<!-- SERVICE WORKER -->
-<script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js");
-  }
-</script>
-
-<!-- PROTECCIÓN Y LOGOUT -->
-<script type="module">
-  import { protegerPagina, cerrarSesion } from './js/auth.js';
-
-  protegerPagina();
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const btnLogout = document.getElementById('btnLogout');
-    if (btnLogout) {
-      btnLogout.addEventListener('click', cerrarSesion);
-    }
-  });
-</script>
 
 </body>
 </html>

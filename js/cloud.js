@@ -5,7 +5,12 @@
 import { initializeApp } from
   "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 
-import { getFirestore } from
+import {
+  getFirestore,
+  doc,
+  setDoc,
+  getDoc
+} from
   "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 import {
@@ -15,7 +20,7 @@ import {
   "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 /* =========================
-   CONFIG
+   CONFIG (PEGA LA TUYA)
 ========================= */
 
 const firebaseConfig = {
@@ -32,9 +37,43 @@ const firebaseConfig = {
 ========================= */
 
 const app = initializeApp(firebaseConfig);
-export const db = getFirestore(app);
-
+const db = getFirestore(app);
 const auth = getAuth(app);
+
+/* =========================
+   AUTH ANÓNIMA
+========================= */
+
+let userId = null;
+
 signInAnonymously(auth)
-  .then(() => console.log("Auth anónima OK"))
-  .catch(err => console.error("Auth error", err));
+  .then(res => {
+    userId = res.user.uid;
+    console.log("Auth OK:", userId);
+    syncFromCloud();
+  })
+  .catch(err => {
+    console.error("Auth error", err);
+  });
+
+/* =========================
+   SYNC
+========================= */
+
+async function syncToCloud() {
+  if (!userId) return;
+  await setDoc(doc(db, "usuarios", userId), {
+    data: getData(),
+    updatedAt: Date.now()
+  });
+}
+
+async function syncFromCloud() {
+  if (!userId) return;
+  const ref = doc(db, "usuarios", userId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return;
+
+  saveData(snap.data().data);
+  showToast("Datos sincronizados");
+}
