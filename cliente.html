@@ -21,9 +21,9 @@
       <small>Gestión profesional de provisiones</small>
     </div>
   </div>
-
   <div style="display: flex; align-items: center; gap: 12px;">
     <button id="themeToggle">🌙</button>
+    <!-- Botón nuevo de cerrar sesión -->
     <button id="btnLogout" title="Cerrar sesión" style="background:none; border:none; font-size:1.8em; cursor:pointer;">
       🚪
     </button>
@@ -31,26 +31,109 @@
 </header>
 
 <div class="container">
-  <!-- Todo tu contenido actual de la página del cliente: datos, condiciones, compras, cargos, saldo, movimientos... -->
-  <!-- (copia tu contenido actual aquí, no lo cambio porque ya lo tienes bien) -->
 
-  <!-- Ejemplo rápido de lo que va aquí -->
+  <!-- DATOS DEL CLIENTE -->
   <div class="card">
     <h3>Datos del cliente</h3>
+
     <label>Código</label>
-    <input type="text" id="clienteCodigo">
+    <input type="text" id="clienteCodigo" placeholder="Código único">
+
     <label>Nombre</label>
-    <input type="text" id="clienteNombre">
+    <input type="text" id="clienteNombre" placeholder="Nombre del cliente">
+
     <label>Dirección</label>
-    <input type="text" id="clienteDireccion">
-    <button class="btn-primary" onclick="guardarDatosCliente()">Guardar cambios</button>
+    <input type="text" id="clienteDireccion" placeholder="Dirección">
+
+    <button class="btn-primary" onclick="guardarDatosCliente()">
+      Guardar cambios
+    </button>
   </div>
 
-  <!-- ... el resto de tu contenido (condiciones, compras, cargos, saldo, movimientos) ... -->
+  <!-- CONDICIONES -->
+  <div class="card">
+    <h3>Nueva condición</h3>
+    <input type="number" id="porcentaje" placeholder="% provisión">
+    <input type="date" id="fechaInicio">
+    <input type="date" id="fechaFin">
+    <button class="btn-primary" onclick="crearCondicion()">Añadir condición</button>
+  </div>
+
+  <div class="card">
+    <h3>Condiciones</h3>
+    <div id="listaCondiciones"></div>
+  </div>
+
+  <!-- COMPRAS -->
+  <div class="card">
+    <h3>Nueva compra</h3>
+    <input type="text" id="conceptoCompra" placeholder="Concepto / factura">
+    <input type="number" id="importeCompra" placeholder="Importe">
+    <input type="date" id="fechaCompra">
+    <button class="btn-primary" onclick="crearCompra()">Añadir compra</button>
+  </div>
+
+  <!-- IMPORTAR COMPRAS -->
+  <div class="card">
+    <h3>Importar compras (Excel)</h3>
+
+    <input type="file" id="excelCompras" accept=".xlsx,.xls">
+    <button class="btn-primary" onclick="importarComprasExcel()">
+      Importar compras
+    </button>
+
+    <small>
+      Columnas requeridas: concepto | importe | fecha
+    </small>
+  </div>
+
+  <!-- IMPORTAR CARGOS -->
+  <div class="card">
+    <h3>Importar cargos (Excel)</h3>
+
+    <input
+      type="file"
+      id="importCargosFile"
+      accept=".xlsx,.xls,.csv"
+    >
+
+    <button class="btn-danger" onclick="importarCargos()">
+      Importar cargos
+    </button>
+
+    <small>
+      Columnas requeridas: concepto | importe | fecha
+    </small>
+  </div>
+
+  <button class="btn-danger" onclick="deshacerUltimaImportacion()">
+    Deshacer última importación
+  </button>
+
+  <!-- CARGOS -->
+  <div class="card">
+    <h3>Nuevo cargo</h3>
+    <input type="text" id="conceptoCargo" placeholder="Concepto">
+    <input type="number" id="importeCargo" placeholder="Importe">
+    <input type="date" id="fechaCargo">
+    <button class="btn-danger" onclick="crearCargo()">Añadir cargo</button>
+  </div>
+
+  <!-- SALDO -->
+  <div class="card">
+    <h3>Saldo provisión</h3>
+    <h2 id="saldoCliente">0 €</h2>
+  </div>
+
+  <!-- MOVIMIENTOS -->
+  <div class="card">
+    <h3>Movimientos</h3>
+    <div id="listaMovimientos"></div>
+  </div>
 
 </div>
 
-<!-- BOTTOM NAV -->
+<!-- NAV -->
 <nav class="bottom-nav">
   <a href="index.html">
     <span class="material-icons-outlined">dashboard</span>
@@ -67,25 +150,23 @@
 </nav>
 
 <!-- SCRIPTS -->
-<script type="module" src="js/condiciones.js"></script>
+<script type="module" src="js/cloud.js"></script>
+<script src="js/condiciones.js"></script>
 <script src="js/navigation.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/toast.js"></script>
-<script src="js/import-excel.js"></script> <!-- Si lo usas aquí -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="js/import-excel.js"></script>
 
-<!-- SERVICE WORKER -->
-<script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js");
-  }
-</script>
-
-<!-- PROTECCIÓN Y LOGOUT -->
+<!-- ==================== PROTECCIÓN Y LOGOUT ==================== -->
 <script type="module">
-  import { protegerPagina, cerrarSesion } from './js/auth.js';
+  import { protegerPagina } from './js/auth.js';
+  import { cerrarSesion } from './js/auth.js';
 
+  // Proteger la página (redirige a login si no hay usuario)
   protegerPagina();
 
+  // Asociar el botón de logout cuando el DOM esté listo
   document.addEventListener('DOMContentLoaded', () => {
     const btnLogout = document.getElementById('btnLogout');
     if (btnLogout) {
@@ -93,6 +174,7 @@
     }
   });
 </script>
+<!-- ============================================================= -->
 
 </body>
 </html>

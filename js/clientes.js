@@ -1,27 +1,80 @@
 /* =========================
-   CLIENTES - VERSIÓN FINAL QUE FUNCIONA
+   CLIENTES
 ========================= */
 
-import { db, collection, addDoc, onSnapshot, deleteDoc, doc } from './firestore.js';
-import { auth } from './auth.js';
+let ultimoClienteEliminado = null;
+let timeoutDeshacer = null;
 
-let clientes = [];
+/* =========================
+   CREAR CLIENTE
+========================= */
 
-// Render de la lista
+function crearCliente() {
+  const codigoInput = document.getElementById("codigoCliente");
+  const nombreInput = document.getElementById("nombreCliente");
+  const direccionInput = document.getElementById("direccionCliente");
+
+  const codigo = codigoInput.value.trim();
+  const nombre = nombreInput.value.trim();
+  const direccion = direccionInput.value.trim();
+
+  if (!codigo) {
+    showToast("El código de cliente es obligatorio");
+    return;
+  }
+
+  if (!nombre) {
+    showToast("El nombre del cliente es obligatorio");
+    return;
+  }
+
+  const clientes = getClientes();
+
+  // VALIDAR CÓDIGO ÚNICO
+  if (clientes.some(c => c.codigo?.toLowerCase() === codigo.toLowerCase())) {
+    showToast("Ya existe un cliente con ese código");
+    return;
+  }
+
+  const cliente = {
+    id: crypto.randomUUID(),
+    codigo,
+    nombre,
+    direccion,
+    condiciones: [],
+    movimientos: []
+  };
+
+  addCliente(cliente);
+
+  codigoInput.value = "";
+  nombreInput.value = "";
+  direccionInput.value = "";
+
+  renderClientes();
+  showToast("Cliente creado");
+}
+
+/* =========================
+   RENDER CLIENTES
+========================= */
+
 function renderClientes() {
   const cont = document.getElementById("listaClientes");
-  if (!cont) return;
 
-  const texto = document.getElementById("buscarCliente")?.value.toLowerCase() || "";
+  const texto =
+    document.getElementById("buscarCliente")?.value.toLowerCase() || "";
 
-  const filtrados = clientes.filter(c =>
-    c.nombre.toLowerCase().includes(texto) ||
-    (c.codigo && c.codigo.toLowerCase().includes(texto))
-  );
+  const clientes = getClientes()
+    .filter(c =>
+      c.nombre.toLowerCase().includes(texto) ||
+      (c.codigo && c.codigo.toLowerCase().includes(texto))
+    )
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   cont.innerHTML = "";
 
-  if (filtrados.length === 0) {
+  if (!clientes.length) {
     cont.innerHTML = `
       <div class="empty-state">
         <span>👥</span>
@@ -31,79 +84,74 @@ function renderClientes() {
     return;
   }
 
-  filtrados.forEach(c => {
+  clientes.forEach(cliente => {
     const card = document.createElement("div");
     card.className = "card";
+
     card.innerHTML = `
-      <strong>${c.nombre}</strong><br>
-      <small>Código: ${c.codigo || "—"}</small><br>
-      ${c.direccion ? `<small>${c.direccion}</small><br>` : ""}
+      <strong>${cliente.nombre}</strong><br>
+      <small>Código: ${cliente.codigo || "—"}</small><br>
+      ${cliente.direccion ? `<small>${cliente.direccion}</small><br>` : ""}
       <br>
-      <a href="cliente.html?id=${c.id}">➡️ Ver cliente</a><br><br>
-      <button class="btn-danger" onclick="eliminarCliente('${c.id}')">
+
+      <a href="cliente.html?id=${cliente.id}">
+        ➡️ Ver cliente
+      </a><br><br>
+
+      <button class="btn-danger"
+        onclick="eliminarCliente('${cliente.id}')">
         Eliminar
       </button>
     `;
+
     cont.appendChild(card);
   });
 }
 
-// Carga en tiempo real
-onSnapshot(collection(db, "clientes"), (snapshot) => {
-  clientes = [];
-  snapshot.forEach((doc) => {
-    clientes.push({ id: doc.id, ...doc.data() });
-  });
-  clientes.sort((a, b) => a.nombre.localeCompare(b.nombre));
+/* =========================
+   ELIMINAR + DESHACER
+========================= */
+
+function eliminarCliente(id) {
+  const clientes = getClientes();
+  const cliente = clientes.find(c => c.id === id);
+  if (!cliente) return;
+
+  ultimoClienteEliminado = cliente;
+
+  deleteCliente(id);
   renderClientes();
+
+  showToast("Cliente eliminado · Deshacer");
+
+  clearTimeout(timeoutDeshacer);
+  timeoutDeshacer = setTimeout(() => {
+    ultimoClienteEliminado = null;
+  }, 4000);
+}
+
+function deshacerEliminarCliente() {
+  if (!ultimoClienteEliminado) return;
+
+  addCliente(ultimoClienteEliminado);
+  ultimoClienteEliminado = null;
+
+  renderClientes();
+  showToast("Cliente restaurado");
+}
+
+/* =========================
+   CLICK TOAST
+========================= */
+
+document.addEventListener("click", e => {
+  if (
+    e.target.classList.contains("toast") &&
+    e.target.textContent.includes("Deshacer")
+  ) {
+    deshacerEliminarCliente();
+  }
 });
 
-// Crear cliente - GLOBAL para onclick
-window.crearCliente = async function() {
-  const codigo = document.getElementById("codigoCliente").value.trim();
-  const nombre = document.getElementById("nombreCliente").value.trim();
-  const direccion = document.getElementById("direccionCliente").value.trim();
-
-  if (!codigo || !nombre) {
-    showToast("Código y nombre son obligatorios");
-    return;
-  }
-
-  if (clientes.some(c => c.codigo?.toLowerCase() === codigo.toLowerCase())) {
-    showToast("Ya existe un cliente con ese código");
-    return;
-  }
-
-  try {
-    await addDoc(collection(db, "clientes"), {
-      usuarioId: auth.currentUser.uid,
-      codigo,
-      nombre,
-      direccion: direccion || ''
-    });
-
-    // Limpiar campos
-    document.getElementById("codigoCliente").value = "";
-    document.getElementById("nombreCliente").value = "";
-    document.getElementById("direccionCliente").value = "";
-
-    showToast("Cliente creado correctamente");
-
-  } catch (error) {
-    showToast("Error al crear cliente");
-    console.error(error);
-  }
-};
-
-// Eliminar cliente - GLOBAL para onclick
-window.eliminarCliente = async function(id) {
-  if (!confirm("¿Eliminar este cliente y todos sus datos?")) return;
-
-  try {
-    await deleteDoc(doc(db, "clientes", id));
-    showToast("Cliente eliminado");
-  } catch (error) {
-    showToast("Error al eliminar");
-    console.error(error);
-  }
-};
+/* INIT */
+renderClientes();
